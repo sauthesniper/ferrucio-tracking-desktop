@@ -7,6 +7,7 @@ import api, { fetchEmployeeReport } from '../services/api';
 import { generateDateRange } from '../utils/dateRange';
 import { computeAttendanceTotals } from '../utils/attendanceTotals';
 import type { UserDetails, EmployeeReport, LocationPoint } from '../types/userProfile';
+import { useTranslation } from '../i18n';
 
 function MapBoundsUpdater({ locations }: { locations: LocationPoint[] }) {
   const map = useMap();
@@ -22,6 +23,7 @@ function MapBoundsUpdater({ locations }: { locations: LocationPoint[] }) {
 
 export default function UserProfilePage() {
   const { id } = useParams<{ id: string }>();
+  const { t } = useTranslation();
 
   const dateRange = generateDateRange(30);
   const todayStr = dateRange[dateRange.length - 1];
@@ -113,9 +115,9 @@ export default function UserProfilePage() {
     return (
       <div style={{ maxWidth: 1100, margin: '0 auto', padding: '24px 32px' }}>
         <Link to="/users" style={{ color: '#0369a1', textDecoration: 'none', fontSize: '0.85rem', display: 'inline-flex', alignItems: 'center', gap: 4, marginBottom: 16 }}>
-          ← Back to Users
+          {t('userProfile.backToUsers')}
         </Link>
-        <p style={{ textAlign: 'center', color: '#6b7280', marginTop: 48 }}>Loading user profile...</p>
+        <p style={{ textAlign: 'center', color: '#6b7280', marginTop: 48 }}>{t('userProfile.loadingProfile')}</p>
       </div>
     );
   }
@@ -123,7 +125,7 @@ export default function UserProfilePage() {
   return (
     <div style={{ maxWidth: 1100, margin: '0 auto', padding: '24px 32px' }}>
       <Link to="/users" style={{ color: '#0369a1', textDecoration: 'none', fontSize: '0.85rem', display: 'inline-flex', alignItems: 'center', gap: 4, marginBottom: 16 }}>
-        ← Back to Users
+        {t('userProfile.backToUsers')}
       </Link>
 
       {error && (
@@ -146,43 +148,43 @@ export default function UserProfilePage() {
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '12px 24px', fontSize: '0.9rem' }}>
             <div>
-              <span style={{ color: '#6b7280' }}>Phone</span>
+              <span style={{ color: '#6b7280' }}>{t('userProfile.phone')}</span>
               <div style={{ fontWeight: 500 }}>{user.phone}</div>
             </div>
             <div>
-              <span style={{ color: '#6b7280' }}>Unique Code</span>
+              <span style={{ color: '#6b7280' }}>{t('userProfile.uniqueCode')}</span>
               <div style={{ fontWeight: 500 }}>{user.unique_code}</div>
             </div>
             <div>
-              <span style={{ color: '#6b7280' }}>Login Code</span>
+              <span style={{ color: '#6b7280' }}>{t('userProfile.loginCode')}</span>
               <div style={{ fontWeight: 500 }}>{user.login_code}</div>
             </div>
             <div>
-              <span style={{ color: '#6b7280' }}>ID Number</span>
+              <span style={{ color: '#6b7280' }}>{t('userProfile.idNumber')}</span>
               <div style={{ fontWeight: 500 }}>{user.id_number ?? '—'}</div>
             </div>
             <div>
-              <span style={{ color: '#6b7280' }}>Email</span>
+              <span style={{ color: '#6b7280' }}>{t('userProfile.email')}</span>
               <div style={{ fontWeight: 500 }}>{user.email ?? '—'}</div>
             </div>
           </div>
 
           <div style={{ display: 'flex', gap: 24, marginTop: 20, paddingTop: 16, borderTop: '1px solid #f3f4f6' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: '0.85rem' }}>
-              <span style={{ color: '#6b7280' }}>Zone Exit Alert</span>
+              <span style={{ color: '#6b7280' }}>{t('userProfile.zoneExitAlert')}</span>
               <span style={{
                 padding: '1px 8px', borderRadius: 8, fontSize: '0.75rem', fontWeight: 500,
                 background: user.alert_exit_zone ? '#dcfce7' : '#f3f4f6',
                 color: user.alert_exit_zone ? '#166534' : '#6b7280',
-              }}>{user.alert_exit_zone ? 'ON' : 'OFF'}</span>
+              }}>{user.alert_exit_zone ? t('userProfile.on') : t('userProfile.off')}</span>
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: '0.85rem' }}>
-              <span style={{ color: '#6b7280' }}>Checkout Alert</span>
+              <span style={{ color: '#6b7280' }}>{t('userProfile.checkoutAlert')}</span>
               <span style={{
                 padding: '1px 8px', borderRadius: 8, fontSize: '0.75rem', fontWeight: 500,
                 background: user.alert_checkout ? '#dcfce7' : '#f3f4f6',
                 color: user.alert_checkout ? '#166534' : '#6b7280',
-              }}>{user.alert_checkout ? 'ON' : 'OFF'}</span>
+              }}>{user.alert_checkout ? t('userProfile.on') : t('userProfile.off')}</span>
             </div>
           </div>
 
@@ -190,19 +192,19 @@ export default function UserProfilePage() {
             <div style={{ display: 'flex', gap: 24, marginTop: 12, fontSize: '0.85rem' }}>
               {user.work_hours_limit != null && (
                 <div>
-                  <span style={{ color: '#6b7280' }}>Work Hours Limit: </span>
+                  <span style={{ color: '#6b7280' }}>{t('userProfile.workHoursLimit')} </span>
                   <span style={{ fontWeight: 500 }}>{user.work_hours_limit}h</span>
                 </div>
               )}
               {user.screen_time_limit != null && (
                 <div>
-                  <span style={{ color: '#6b7280' }}>Screen Time Limit: </span>
+                  <span style={{ color: '#6b7280' }}>{t('userProfile.screenTimeLimit')} </span>
                   <span style={{ fontWeight: 500 }}>{user.screen_time_limit}min</span>
                 </div>
               )}
               {user.stationary_limit != null && (
                 <div>
-                  <span style={{ color: '#6b7280' }}>Stationary Limit: </span>
+                  <span style={{ color: '#6b7280' }}>{t('userProfile.stationaryLimit')} </span>
                   <span style={{ fontWeight: 500 }}>{user.stationary_limit}min</span>
                 </div>
               )}
@@ -216,38 +218,38 @@ export default function UserProfilePage() {
         const totals = computeAttendanceTotals(report.sessions);
         return (
           <div style={{ marginBottom: 24 }}>
-            <h2 style={{ fontSize: '1.1rem', marginBottom: 12 }}>Attendance Summary</h2>
+            <h2 style={{ fontSize: '1.1rem', marginBottom: 12 }}>{t('userProfile.attendanceSummary')}</h2>
 
             {/* Summary cards */}
             <div style={{ display: 'flex', gap: 16, marginBottom: 24, flexWrap: 'wrap' }}>
               <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 10, padding: '14px 18px', minWidth: 160 }}>
-                <div style={{ fontSize: '0.8rem', color: '#6b7280', marginBottom: 4 }}>Total Hours</div>
+                <div style={{ fontSize: '0.8rem', color: '#6b7280', marginBottom: 4 }}>{t('userProfile.totalHours')}</div>
                 <div style={{ fontWeight: 600, fontSize: '1.2rem' }}>{report.totalHours.toFixed(1)}h</div>
               </div>
               <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 10, padding: '14px 18px', minWidth: 160 }}>
-                <div style={{ fontSize: '0.8rem', color: '#6b7280', marginBottom: 4 }}>Total Sessions</div>
+                <div style={{ fontSize: '0.8rem', color: '#6b7280', marginBottom: 4 }}>{t('userProfile.totalSessions')}</div>
                 <div style={{ fontWeight: 600, fontSize: '1.2rem' }}>{totals.totalSessions}</div>
               </div>
               <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 10, padding: '14px 18px', minWidth: 160 }}>
-                <div style={{ fontSize: '0.8rem', color: '#6b7280', marginBottom: 4 }}>Screen Time</div>
+                <div style={{ fontSize: '0.8rem', color: '#6b7280', marginBottom: 4 }}>{t('userProfile.screenTime')}</div>
                 <div style={{ fontWeight: 600, fontSize: '1.2rem' }}>{report.screenTimeMinutes.toFixed(0)} min</div>
               </div>
               <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 10, padding: '14px 18px', minWidth: 160 }}>
-                <div style={{ fontSize: '0.8rem', color: '#6b7280', marginBottom: 4 }}>Zone Exits</div>
+                <div style={{ fontSize: '0.8rem', color: '#6b7280', marginBottom: 4 }}>{t('userProfile.zoneExits')}</div>
                 <div style={{ fontWeight: 600, fontSize: '1.2rem' }}>{report.zoneExits.length}</div>
               </div>
             </div>
 
             {/* Sessions table */}
-            <h3 style={{ fontSize: '1rem', marginBottom: 8 }}>Work Sessions</h3>
+            <h3 style={{ fontSize: '1rem', marginBottom: 8 }}>{t('userProfile.workSessions')}</h3>
             {report.sessions.length > 0 ? (
               <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                 <thead>
                   <tr style={{ textAlign: 'left' }}>
-                    <th style={{ padding: '12px 16px' }}>Check-in</th>
-                    <th style={{ padding: '12px 16px' }}>Check-out</th>
-                    <th style={{ padding: '12px 16px' }}>Duration</th>
-                    <th style={{ padding: '12px 16px' }}>Type</th>
+                    <th style={{ padding: '12px 16px' }}>{t('userProfile.checkIn')}</th>
+                    <th style={{ padding: '12px 16px' }}>{t('userProfile.checkOut')}</th>
+                    <th style={{ padding: '12px 16px' }}>{t('userProfile.duration')}</th>
+                    <th style={{ padding: '12px 16px' }}>{t('userProfile.type')}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -279,7 +281,7 @@ export default function UserProfilePage() {
                 </tbody>
               </table>
             ) : (
-              <p style={{ textAlign: 'center', color: '#9ca3af', marginTop: 32 }}>No sessions found</p>
+              <p style={{ textAlign: 'center', color: '#9ca3af', marginTop: 32 }}>{t('userProfile.noSessions')}</p>
             )}
           </div>
         );
@@ -287,7 +289,7 @@ export default function UserProfilePage() {
 
       {/* Location Map Section */}
       <div style={{ marginBottom: 24 }}>
-        <h2 style={{ fontSize: '1.1rem', marginBottom: 8 }}>Location Trail</h2>
+        <h2 style={{ fontSize: '1.1rem', marginBottom: 8 }}>{t('userProfile.locationTrail')}</h2>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
           <button
             onClick={handlePrevDay}
@@ -315,7 +317,7 @@ export default function UserProfilePage() {
         </div>
 
         {locations.length === 0 ? (
-          <p style={{ textAlign: 'center', color: '#9ca3af', marginTop: 32 }}>No GPS data for this date</p>
+          <p style={{ textAlign: 'center', color: '#9ca3af', marginTop: 32 }}>{t('userProfile.noGpsData')}</p>
         ) : (
           <div style={{ borderRadius: 12, overflow: 'hidden', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}>
             <MapContainer
@@ -342,9 +344,9 @@ export default function UserProfilePage() {
                   <Popup>
                     <div style={{ fontSize: '0.8rem' }}>
                       <strong>{new Date(p.timestamp).toLocaleString()}</strong><br />
-                      {p.speed != null && <>Speed: {(p.speed * 3.6).toFixed(1)} km/h<br /></>}
-                      Battery: {p.battery_level != null ? `${Math.round(p.battery_level)}%` : '—'}<br />
-                      Screen: {p.screen_on ? <span style={{color:'#22c55e'}}>● On</span> : <span style={{color:'#ef4444'}}>● Off</span>}
+                      {p.speed != null && <>{t('userProfile.speed')} {(p.speed * 3.6).toFixed(1)} km/h<br /></>}
+                      {t('userProfile.battery')} {p.battery_level != null ? `${Math.round(p.battery_level)}%` : '—'}<br />
+                      {t('userProfile.screen')} {p.screen_on ? <span style={{color:'#22c55e'}}>● On</span> : <span style={{color:'#ef4444'}}>● Off</span>}
                     </div>
                   </Popup>
                 </CircleMarker>

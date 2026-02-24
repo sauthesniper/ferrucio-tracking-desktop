@@ -42,6 +42,10 @@ export function fetchEmployeeReport(id: number, from?: string, to?: string) {
 
 // --- Alerts API ---
 
+export function fetchWorkHoursReport(from: string, to: string) {
+  return api.get('/api/reports/work-hours', { params: { from, to } });
+}
+
 export function fetchAlerts(sessionId?: number, employeeId?: number) {
   const params: Record<string, number> = {};
   if (sessionId) params.session_id = sessionId;

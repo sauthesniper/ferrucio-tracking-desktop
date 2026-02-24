@@ -3,6 +3,7 @@ import { useParams, Link } from 'react-router-dom';
 import { MapContainer, TileLayer, Polyline, CircleMarker, Popup } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import { fetchEmployeeReport } from '../services/api';
+import { useTranslation } from '../i18n';
 
 interface EmployeeInfo {
   id: number;
@@ -41,6 +42,7 @@ interface ZoneExit {
 
 export default function EmployeeReportPage() {
   const { id } = useParams<{ id: string }>();
+  const { t } = useTranslation();
   const [employee, setEmployee] = useState<EmployeeInfo | null>(null);
   const [sessions, setSessions] = useState<Session[]>([]);
   const [totalHours, setTotalHours] = useState(0);
@@ -95,7 +97,7 @@ export default function EmployeeReportPage() {
   return (
     <div style={{ maxWidth: 1100, margin: '0 auto', padding: '24px 32px' }}>
       <Link to="/attendance" style={{ color: '#0369a1', textDecoration: 'none', fontSize: '0.85rem', display: 'inline-flex', alignItems: 'center', gap: 4, marginBottom: 16 }}>
-        ← Back to Sessions
+        {t('employeeReport.backToSessions')}
       </Link>
 
       {error && (
@@ -106,7 +108,7 @@ export default function EmployeeReportPage() {
 
       {employee && (
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 24 }}>
-          <h1 style={{ margin: 0 }}>Employee Report — {employee.username}</h1>
+          <h1 style={{ margin: 0 }}>{t('employeeReport.title')} {employee.username}</h1>
           <span style={{ color: '#6b7280', fontSize: '0.9rem' }}>({employee.phone})</span>
         </div>
       )}
@@ -114,19 +116,19 @@ export default function EmployeeReportPage() {
       {/* Date range filter */}
       <div style={{ display: 'flex', gap: 12, marginBottom: 20, alignItems: 'flex-end', flexWrap: 'wrap' }}>
         <div>
-          <label style={{ display: 'block', marginBottom: 4, fontSize: '0.85rem', color: '#6b7280' }}>From</label>
+          <label style={{ display: 'block', marginBottom: 4, fontSize: '0.85rem', color: '#6b7280' }}>{t('employeeReport.from')}</label>
           <input type="date" value={from} onChange={(e) => setFrom(e.target.value)} style={{ padding: '6px 12px' }} />
         </div>
         <div>
-          <label style={{ display: 'block', marginBottom: 4, fontSize: '0.85rem', color: '#6b7280' }}>To</label>
+          <label style={{ display: 'block', marginBottom: 4, fontSize: '0.85rem', color: '#6b7280' }}>{t('employeeReport.to')}</label>
           <input type="date" value={to} onChange={(e) => setTo(e.target.value)} style={{ padding: '6px 12px' }} />
         </div>
         <button onClick={loadReport} disabled={loading} style={{ padding: '6px 16px', fontSize: '0.85rem' }}>
-          {loading ? 'Loading...' : 'Apply Filter'}
+          {loading ? t('employeeReport.loading') : t('employeeReport.applyFilter')}
         </button>
         {(from || to) && (
           <button onClick={() => { setFrom(''); setTo(''); }} style={{ padding: '6px 16px', fontSize: '0.85rem', background: '#f3f4f6', color: '#374151', border: '1px solid #d1d5db' }}>
-            Clear
+            {t('employeeReport.clear')}
           </button>
         )}
       </div>
@@ -134,23 +136,23 @@ export default function EmployeeReportPage() {
       {/* Summary cards */}
       <div style={{ display: 'flex', gap: 16, marginBottom: 24, flexWrap: 'wrap' }}>
         <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 10, padding: '14px 18px', minWidth: 160 }}>
-          <div style={{ fontSize: '0.8rem', color: '#6b7280', marginBottom: 4 }}>Total Hours</div>
+          <div style={{ fontSize: '0.8rem', color: '#6b7280', marginBottom: 4 }}>{t('employeeReport.totalHours')}</div>
           <div style={{ fontWeight: 600, fontSize: '1.2rem' }}>{totalHours.toFixed(1)}h</div>
         </div>
         <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 10, padding: '14px 18px', minWidth: 160 }}>
-          <div style={{ fontSize: '0.8rem', color: '#6b7280', marginBottom: 4 }}>Sessions</div>
+          <div style={{ fontSize: '0.8rem', color: '#6b7280', marginBottom: 4 }}>{t('employeeReport.sessions')}</div>
           <div style={{ fontWeight: 600, fontSize: '1.2rem' }}>{sessions.length}</div>
         </div>
         <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 10, padding: '14px 18px', minWidth: 160 }}>
-          <div style={{ fontSize: '0.8rem', color: '#6b7280', marginBottom: 4 }}>Screen Time</div>
+          <div style={{ fontSize: '0.8rem', color: '#6b7280', marginBottom: 4 }}>{t('employeeReport.screenTime')}</div>
           <div style={{ fontWeight: 600, fontSize: '1.2rem' }}>{screenTimeMinutes.toFixed(0)} min</div>
         </div>
         <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 10, padding: '14px 18px', minWidth: 160 }}>
-          <div style={{ fontSize: '0.8rem', color: '#6b7280', marginBottom: 4 }}>Zone Exits</div>
+          <div style={{ fontSize: '0.8rem', color: '#6b7280', marginBottom: 4 }}>{t('employeeReport.zoneExits')}</div>
           <div style={{ fontWeight: 600, fontSize: '1.2rem' }}>{zoneExits.length}</div>
         </div>
         <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 10, padding: '14px 18px', minWidth: 160 }}>
-          <div style={{ fontSize: '0.8rem', color: '#6b7280', marginBottom: 4 }}>GPS Points</div>
+          <div style={{ fontSize: '0.8rem', color: '#6b7280', marginBottom: 4 }}>{t('employeeReport.gpsPoints')}</div>
           <div style={{ fontWeight: 600, fontSize: '1.2rem' }}>{gpsTrail.length}</div>
         </div>
       </div>
@@ -158,7 +160,7 @@ export default function EmployeeReportPage() {
       {/* GPS Trail Map */}
       {gpsTrail.length > 0 && (
         <div style={{ marginBottom: 24 }}>
-          <h2 style={{ fontSize: '1.1rem', marginBottom: 12 }}>GPS Trail</h2>
+          <h2 style={{ fontSize: '1.1rem', marginBottom: 12 }}>{t('employeeReport.gpsTrail')}</h2>
           <div style={{ borderRadius: 12, overflow: 'hidden', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}>
             <MapContainer center={mapCenter} zoom={14} style={{ height: 400, width: '100%' }}>
               <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" attribution="&copy; OpenStreetMap contributors" />
@@ -173,9 +175,9 @@ export default function EmployeeReportPage() {
                   <Popup>
                     <div style={{ fontSize: '0.8rem' }}>
                       <strong>{new Date(p.recorded_at).toLocaleString()}</strong><br />
-                      {p.speed != null && <>Speed: {(p.speed * 3.6).toFixed(1)} km/h<br /></>}
-                      Battery: {p.battery_level != null ? `${p.battery_level.toFixed(0)}%` : '—'}<br />
-                      Screen: {p.screen_on ? <span style={{color:'#22c55e'}}>● On</span> : <span style={{color:'#ef4444'}}>● Off</span>}
+                      {p.speed != null && <>{t('map.speed')} {(p.speed * 3.6).toFixed(1)} km/h<br /></>}
+                      {t('employeeReport.battery')} {p.battery_level != null ? `${p.battery_level.toFixed(0)}%` : '—'}<br />
+                      {t('map.screen')} {p.screen_on ? <span style={{color:'#22c55e'}}>● On</span> : <span style={{color:'#ef4444'}}>● Off</span>}
                     </div>
                   </Popup>
                 </CircleMarker>
@@ -186,15 +188,15 @@ export default function EmployeeReportPage() {
       )}
 
       {/* Sessions table */}
-      <h2 style={{ fontSize: '1.1rem', marginBottom: 12 }}>Work Sessions</h2>
+      <h2 style={{ fontSize: '1.1rem', marginBottom: 12 }}>{t('employeeReport.workSessions')}</h2>
       <table style={{ width: '100%', borderCollapse: 'collapse' }}>
         <thead>
           <tr style={{ textAlign: 'left' }}>
-            <th style={{ padding: '12px 16px' }}>Check-in</th>
-            <th style={{ padding: '12px 16px' }}>Check-out</th>
-            <th style={{ padding: '12px 16px' }}>Duration</th>
-            <th style={{ padding: '12px 16px' }}>Type</th>
-            <th style={{ padding: '12px 16px' }}>Details</th>
+            <th style={{ padding: '12px 16px' }}>{t('employeeReport.checkIn')}</th>
+            <th style={{ padding: '12px 16px' }}>{t('employeeReport.checkOut')}</th>
+            <th style={{ padding: '12px 16px' }}>{t('employeeReport.duration')}</th>
+            <th style={{ padding: '12px 16px' }}>{t('employeeReport.type')}</th>
+            <th style={{ padding: '12px 16px' }}>{t('employeeReport.details')}</th>
           </tr>
         </thead>
         <tbody>
@@ -222,9 +224,9 @@ export default function EmployeeReportPage() {
                 )}
               </td>
               <td style={{ padding: '12px 16px', fontSize: '0.8rem', color: '#6b7280' }}>
-                {s.checkInLeaderName && <div>Check-in by: {s.checkInLeaderName}</div>}
-                {s.checkOutLeaderName && <div>Check-out by: {s.checkOutLeaderName}</div>}
-                {s.manualReason && <div>Reason: {s.manualReason}</div>}
+                {s.checkInLeaderName && <div>{t('employeeReport.checkInBy')} {s.checkInLeaderName}</div>}
+                {s.checkOutLeaderName && <div>{t('employeeReport.checkOutBy')} {s.checkOutLeaderName}</div>}
+                {s.manualReason && <div>{t('employeeReport.reason')} {s.manualReason}</div>}
               </td>
             </tr>
           ))}
@@ -232,7 +234,7 @@ export default function EmployeeReportPage() {
       </table>
 
       {sessions.length === 0 && (
-        <p style={{ textAlign: 'center', color: '#9ca3af', marginTop: 32 }}>No sessions found for this period.</p>
+        <p style={{ textAlign: 'center', color: '#9ca3af', marginTop: 32 }}>{t('employeeReport.noSessions')}</p>
       )}
     </div>
   );

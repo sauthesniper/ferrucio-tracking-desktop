@@ -4,6 +4,8 @@ import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import api from '../services/api';
 import { fetchSessions, fetchSessionEmployees } from '../services/api';
+import { useTranslation } from '../i18n';
+import GeofenceConfig from '../components/GeofenceConfig';
 
 interface LocationData {
   userId: number; username: string;
@@ -161,6 +163,7 @@ function downsample(pts: HistoryPoint[], max: number): HistoryPoint[] {
 }
 
 function HistoryDots({ selectedArr, histories }: { selectedArr: number[]; histories: Record<number, HistoryPoint[]> }) {
+  const { t } = useTranslation();
   return (
     <>
       {selectedArr.map((uid) => {
@@ -179,10 +182,10 @@ function HistoryDots({ selectedArr, histories }: { selectedArr: number[]; histor
               <Popup>
                 <div style={{ fontSize: '0.8rem', lineHeight: 1.5 }}>
                   <strong>{new Date(p.timestamp).toLocaleString()}</strong><br />
-                  {p.speed != null && <>Speed: {(p.speed * 3.6).toFixed(1)} km/h<br /></>}
-                  {p.accel_x != null && <>Accel: {Math.sqrt(p.accel_x**2 + (p.accel_y??0)**2 + (p.accel_z??0)**2).toFixed(2)} m/s²<br /></>}
-                  {p.gyro_x != null && <>Gyro: {Math.sqrt(p.gyro_x**2 + (p.gyro_y??0)**2 + (p.gyro_z??0)**2).toFixed(2)} rad/s<br /></>}
-                  Screen: {p.screen_on ? <span style={{color:'#22c55e'}}>● On</span> : <span style={{color:'#ef4444'}}>● Off</span>}
+                  {p.speed != null && <>{t('map.speed')} {(p.speed * 3.6).toFixed(1)} km/h<br /></>}
+                  {p.accel_x != null && <>{t('map.accel')} {Math.sqrt(p.accel_x**2 + (p.accel_y??0)**2 + (p.accel_z??0)**2).toFixed(2)} m/s²<br /></>}
+                  {p.gyro_x != null && <>{t('map.gyro')} {Math.sqrt(p.gyro_x**2 + (p.gyro_y??0)**2 + (p.gyro_z??0)**2).toFixed(2)} rad/s<br /></>}
+                  {t('map.screen')} {p.screen_on ? <span style={{color:'#22c55e'}}>● On</span> : <span style={{color:'#ef4444'}}>● Off</span>}
                 </div>
               </Popup>
             </CircleMarker>
@@ -196,6 +199,7 @@ function HistoryDots({ selectedArr, histories }: { selectedArr: number[]; histor
 const MemoizedHistoryDots = React.memo(HistoryDots);
 
 export default function MapPage() {
+  const { t } = useTranslation();
   const [locations, setLocations] = useState<LocationData[]>([]);
   const [selectedUserIds, setSelectedUserIds] = useState<Set<number>>(new Set());
   const [histories, setHistories] = useState<Record<number, HistoryPoint[]>>({});
@@ -288,9 +292,9 @@ export default function MapPage() {
           <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#1e3a5f" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" /><circle cx="12" cy="10" r="3" />
           </svg>
-          <h1 style={{ margin: 0 }}>Location Map</h1>
+          <h1 style={{ margin: 0 }}>{t('map.title')}</h1>
           <span style={{ color: '#6b7280', fontSize: '0.85rem', marginLeft: 8 }}>
-            {filteredLocations.length} user{filteredLocations.length !== 1 ? 's' : ''} tracked
+            {filteredLocations.length} {filteredLocations.length !== 1 ? t('map.trackedPlural') : t('map.tracked')}
             {loading && <span style={{ marginLeft: 6 }}>⟳</span>}
           </span>
         </div>
@@ -299,12 +303,12 @@ export default function MapPage() {
             type="text"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search users..."
+            placeholder={t('map.searchPlaceholder')}
             style={{ padding: '6px 12px', fontSize: '0.85rem', border: '1px solid #d1d5db', borderRadius: 6, width: 200 }}
           />
           {selectedArr.length > 0 && (
             <button onClick={() => setSelectedUserIds(new Set())} style={{ padding: '6px 12px', fontSize: '0.85rem' }}>
-              Clear selection ({selectedArr.length})
+              {t('map.clearSelection')} ({selectedArr.length})
             </button>
           )}
           <button onClick={fetchLocations} disabled={loading} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 16px' }}>
@@ -312,7 +316,7 @@ export default function MapPage() {
               <polyline points="23 4 23 10 17 10" /><polyline points="1 20 1 14 7 14" />
               <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15" />
             </svg>
-            {loading ? 'Refreshing...' : 'Refresh'}
+            {loading ? t('map.refreshing') : t('map.refresh')}
           </button>
         </div>
       </div>
@@ -321,18 +325,19 @@ export default function MapPage() {
 
       {/* Acceleration legend */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 16, fontSize: '0.8rem', color: '#6b7280', marginBottom: 8 }}>
-        <span>Click user for 24h history (Ctrl+Click for multi). Dot color = acceleration:</span>
-        <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}><span style={{ width: 10, height: 10, borderRadius: '50%', background: '#22c55e', display: 'inline-block' }} /> Still</span>
-        <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}><span style={{ width: 10, height: 10, borderRadius: '50%', background: '#eab308', display: 'inline-block' }} /> Moderate</span>
-        <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}><span style={{ width: 10, height: 10, borderRadius: '50%', background: '#f97316', display: 'inline-block' }} /> Fast</span>
-        <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}><span style={{ width: 10, height: 10, borderRadius: '50%', background: '#dc2626', display: 'inline-block' }} /> High</span>
-        <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}><span style={{ width: 10, height: 10, borderRadius: '50%', border: '2px solid #059669', display: 'inline-block' }} /> Checked-in</span>
+        <span>{t('map.historyHint')}</span>
+        <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}><span style={{ width: 10, height: 10, borderRadius: '50%', background: '#22c55e', display: 'inline-block' }} /> {t('map.still')}</span>
+        <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}><span style={{ width: 10, height: 10, borderRadius: '50%', background: '#eab308', display: 'inline-block' }} /> {t('map.moderate')}</span>
+        <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}><span style={{ width: 10, height: 10, borderRadius: '50%', background: '#f97316', display: 'inline-block' }} /> {t('map.fast')}</span>
+        <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}><span style={{ width: 10, height: 10, borderRadius: '50%', background: '#dc2626', display: 'inline-block' }} /> {t('map.high')}</span>
+        <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}><span style={{ width: 10, height: 10, borderRadius: '50%', border: '2px solid #059669', display: 'inline-block' }} /> {t('map.checkedIn')}</span>
       </div>
 
       <div style={{ borderRadius: 12, overflow: 'hidden', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}>
         <MapContainer center={[20, 0]} zoom={2} style={{ height: 550, width: '100%' }}>
           <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" attribution="&copy; OpenStreetMap contributors" />
           <MapController locations={filteredLocations} selectedUserIds={selectedUserIds} histories={histories} />
+          <GeofenceConfig />
 
           {/* History trails */}
           {selectedArr.map((uid, idx) => {
@@ -412,10 +417,10 @@ export default function MapPage() {
               <div key={uid} style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 10, padding: '14px 18px', minWidth: 220, borderLeft: `4px solid ${color}` }}>
                 <div style={{ fontWeight: 600, marginBottom: 8, fontSize: '0.95rem' }}>{user?.username ?? `User ${uid}`}</div>
                 <div style={{ fontSize: '0.85rem', color: '#374151', lineHeight: 1.8 }}>
-                  • {pts.length} points<br />
-                  • Max speed: {stats.maxSpeedKmh} km/h<br />
-                  • Distance: {stats.distanceKm} km<br />
-                  • Screen on: {stats.screenOnMin} min
+                  • {pts.length} {t('map.points')}<br />
+                  • {t('map.maxSpeed')} {stats.maxSpeedKmh} km/h<br />
+                  • {t('map.distance')} {stats.distanceKm} km<br />
+                  • {t('map.screenOn')} {stats.screenOnMin} min
                 </div>
               </div>
             );

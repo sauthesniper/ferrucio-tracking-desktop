@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { useTranslation } from '../i18n';
 
 export default function LoginPage() {
   const [username, setUsername] = useState('');
@@ -9,6 +10,7 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const { login } = useAuth();
   const navigate = useNavigate();
+  const { t } = useTranslation();
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -18,7 +20,7 @@ export default function LoginPage() {
       await login(username, password);
       navigate('/users', { replace: true });
     } catch (err: any) {
-      const msg = err?.response?.data?.error || 'Login failed';
+      const msg = err?.response?.data?.error || t('login.failed');
       setError(msg);
     } finally {
       setLoading(false);
@@ -36,24 +38,24 @@ export default function LoginPage() {
         border: '1px solid rgba(255,255,255,0.1)', boxShadow: '0 25px 50px rgba(0,0,0,0.4)',
       }}>
         <div style={{ textAlign: 'center', marginBottom: 4 }}>
-          <h1 style={{ color: 'white', fontSize: '1.5rem', marginTop: 12, marginBottom: 4 }}>CONI Admin</h1>
+          <h1 style={{ color: 'white', fontSize: '1.5rem', marginTop: 12, marginBottom: 4 }}>{t('login.appName')}</h1>
         </div>
 
         {error && <div style={{ color: '#f87171', background: 'rgba(248,113,113,0.1)', padding: '10px 14px', borderRadius: 8, marginBottom: 16, fontSize: '0.85rem' }}>{error}</div>}
 
         <div style={{ marginBottom: 16 }}>
-          <label htmlFor="username" style={{ display: 'block', marginBottom: 6, color: '#94a3b8', fontSize: '0.85rem' }}>Username</label>
+          <label htmlFor="username" style={{ display: 'block', marginBottom: 6, color: '#94a3b8', fontSize: '0.85rem' }}>{t('login.username')}</label>
           <input id="username" type="text" value={username} onChange={(e) => setUsername(e.target.value)} required
             style={{ width: '100%', padding: '10px 14px', background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.15)', borderRadius: 8, color: 'white', fontSize: '0.9rem' }}
-            placeholder="Enter username"
+            placeholder={t('login.usernamePlaceholder')}
           />
         </div>
 
         <div style={{ marginBottom: 24 }}>
-          <label htmlFor="password" style={{ display: 'block', marginBottom: 6, color: '#94a3b8', fontSize: '0.85rem' }}>Password</label>
+          <label htmlFor="password" style={{ display: 'block', marginBottom: 6, color: '#94a3b8', fontSize: '0.85rem' }}>{t('login.password')}</label>
           <input id="password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required
             style={{ width: '100%', padding: '10px 14px', background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.15)', borderRadius: 8, color: 'white', fontSize: '0.9rem' }}
-            placeholder="Enter password"
+            placeholder={t('login.passwordPlaceholder')}
           />
         </div>
 
@@ -62,7 +64,7 @@ export default function LoginPage() {
           borderRadius: 8, color: 'white', fontWeight: 600, fontSize: '0.95rem', cursor: loading ? 'not-allowed' : 'pointer',
           boxShadow: '0 4px 14px rgba(59,130,246,0.4)', transition: 'all 0.2s',
         }}>
-          {loading ? 'Signing in...' : 'Sign In'}
+          {loading ? t('login.signingIn') : t('login.submit')}
         </button>
       </form>
     </div>

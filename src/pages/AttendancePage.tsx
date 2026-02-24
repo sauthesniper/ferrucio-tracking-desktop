@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { fetchSessions } from '../services/api';
+import { useTranslation } from '../i18n';
 
 interface Session {
   id: number;
@@ -15,6 +16,7 @@ interface Session {
 }
 
 export default function AttendancePage() {
+  const { t } = useTranslation();
   const [sessions, setSessions] = useState<Session[]>([]);
   const [filter, setFilter] = useState<string>('');
   const [search, setSearch] = useState('');
@@ -58,7 +60,7 @@ export default function AttendancePage() {
         background: isCheckIn ? '#dbeafe' : '#fce7f3',
         color: isCheckIn ? '#1e40af' : '#9d174d',
       }}>
-        {isCheckIn ? 'Check-in' : 'Check-out'}
+        {isCheckIn ? t('attendance.checkIn') : t('attendance.checkOut')}
       </span>
     );
   };
@@ -80,7 +82,7 @@ export default function AttendancePage() {
         <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#1e3a5f" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
           <rect x="3" y="4" width="18" height="18" rx="2" ry="2" /><line x1="16" y1="2" x2="16" y2="6" /><line x1="8" y1="2" x2="8" y2="6" /><line x1="3" y1="10" x2="21" y2="10" />
         </svg>
-        <h1 style={{ margin: 0 }}>Attendance Sessions</h1>
+        <h1 style={{ margin: 0 }}>{t('attendance.title')}</h1>
       </div>
 
       {error && (
@@ -101,31 +103,31 @@ export default function AttendancePage() {
               fontWeight: filter === f ? 600 : 400, fontSize: '0.85rem',
             }}
           >
-            {f === '' ? 'All' : f.charAt(0).toUpperCase() + f.slice(1)}
+            {f === '' ? t('attendance.all') : f === 'active' ? t('attendance.active') : f === 'expired' ? t('attendance.expired') : t('attendance.closed')}
           </button>
         ))}
         <input
           type="text"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          placeholder="Search sessions..."
+          placeholder={t('attendance.searchPlaceholder')}
           style={{ padding: '6px 12px', fontSize: '0.85rem', border: '1px solid #d1d5db', borderRadius: 6, marginLeft: 8, width: 200 }}
         />
         <button onClick={loadSessions} disabled={loading} style={{ marginLeft: 'auto', padding: '6px 16px', fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: 6 }}>
-          {loading ? 'Loading...' : 'Refresh'}
+          {loading ? t('attendance.loading') : t('attendance.refresh')}
         </button>
       </div>
 
       <table style={{ width: '100%', borderCollapse: 'collapse' }}>
         <thead>
           <tr style={{ textAlign: 'left' }}>
-            <th style={{ padding: '12px 16px' }}>ID</th>
-            <th style={{ padding: '12px 16px' }}>Leader</th>
-            <th style={{ padding: '12px 16px' }}>Type</th>
-            <th style={{ padding: '12px 16px' }}>Employees</th>
-            <th style={{ padding: '12px 16px' }}>Status</th>
-            <th style={{ padding: '12px 16px' }}>Created</th>
-            <th style={{ padding: '12px 16px', textAlign: 'right' }}>Actions</th>
+            <th style={{ padding: '12px 16px' }}>{t('attendance.id')}</th>
+            <th style={{ padding: '12px 16px' }}>{t('attendance.leader')}</th>
+            <th style={{ padding: '12px 16px' }}>{t('attendance.type')}</th>
+            <th style={{ padding: '12px 16px' }}>{t('attendance.employees')}</th>
+            <th style={{ padding: '12px 16px' }}>{t('attendance.status')}</th>
+            <th style={{ padding: '12px 16px' }}>{t('attendance.created')}</th>
+            <th style={{ padding: '12px 16px', textAlign: 'right' }}>{t('attendance.actions')}</th>
           </tr>
         </thead>
         <tbody>
@@ -148,7 +150,7 @@ export default function AttendancePage() {
                     textDecoration: 'none',
                   }}
                 >
-                  View Report
+                  {t('attendance.viewReport')}
                 </Link>
               </td>
             </tr>
@@ -157,7 +159,7 @@ export default function AttendancePage() {
       </table>
 
       {sessions.length === 0 && !loading && (
-        <p style={{ textAlign: 'center', color: '#9ca3af', marginTop: 32 }}>No sessions found.</p>
+        <p style={{ textAlign: 'center', color: '#9ca3af', marginTop: 32 }}>{t('attendance.noSessions')}</p>
       )}
     </div>
   );

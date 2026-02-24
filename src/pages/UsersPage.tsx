@@ -2,6 +2,7 @@ import { useState, useEffect, type FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../services/api';
 import UserFormExtended from '../components/UserFormExtended';
+import { useTranslation } from '../i18n';
 
 interface User {
   id: number;
@@ -12,6 +13,7 @@ interface User {
 
 export default function UsersPage() {
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const [users, setUsers] = useState<User[]>([]);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
@@ -32,11 +34,11 @@ export default function UsersPage() {
   useEffect(() => { fetchUsers(); }, []);
 
   const handleDelete = async (id: number) => {
-    if (!confirm('Are you sure you want to delete this user?')) return;
+    if (!confirm(t('users.confirmDelete'))) return;
     setError(''); setSuccess('');
     try {
       await api.delete(`/api/users/${id}`);
-      setSuccess('User deleted');
+      setSuccess(t('users.deleted'));
       await fetchUsers();
     } catch (err: any) {
       setError(err?.response?.data?.error || 'Failed to delete user');
@@ -62,7 +64,7 @@ export default function UsersPage() {
         <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#1e3a5f" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
           <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M22 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" />
         </svg>
-        <h1 style={{ margin: 0 }}>User Management</h1>
+        <h1 style={{ margin: 0 }}>{t('users.title')}</h1>
       </div>
 
       {error && <div style={{ color: '#dc2626', background: '#fef2f2', border: '1px solid #fecaca', padding: '10px 14px', borderRadius: 8, marginBottom: 16, fontSize: '0.9rem' }}>{error}</div>}
@@ -74,15 +76,15 @@ export default function UsersPage() {
       {editingUser && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000 }}>
           <form onSubmit={handlePasswordUpdate} style={{ width: 380, padding: 28, background: 'white', borderRadius: 12, boxShadow: '0 20px 60px rgba(0,0,0,0.3)' }}>
-            <h2 style={{ fontSize: '1.1rem', marginBottom: 4 }}>Change Password</h2>
-            <p style={{ color: '#6b7280', fontSize: '0.85rem', marginBottom: 20 }}>Set a new password for <strong>{editingUser.username}</strong></p>
+            <h2 style={{ fontSize: '1.1rem', marginBottom: 4 }}>{t('users.changePassword')}</h2>
+            <p style={{ color: '#6b7280', fontSize: '0.85rem', marginBottom: 20 }}>{t('users.setNewPasswordFor')} <strong>{editingUser.username}</strong></p>
             <div style={{ marginBottom: 16 }}>
-              <label htmlFor="edit-password" style={{ display: 'block', marginBottom: 6 }}>New Password</label>
-              <input id="edit-password" type="text" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} required placeholder="Enter new password" style={{ width: '100%', padding: '8px 12px' }} autoFocus />
+              <label htmlFor="edit-password" style={{ display: 'block', marginBottom: 6 }}>{t('users.newPassword')}</label>
+              <input id="edit-password" type="text" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} required placeholder={t('users.newPasswordPlaceholder')} style={{ width: '100%', padding: '8px 12px' }} autoFocus />
             </div>
             <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
-              <button type="button" onClick={() => { setEditingUser(null); setNewPassword(''); }} style={{ background: '#f3f4f6', color: '#374151', border: '1px solid #d1d5db' }}>Cancel</button>
-              <button type="submit" disabled={passwordLoading}>{passwordLoading ? 'Saving...' : 'Update Password'}</button>
+              <button type="button" onClick={() => { setEditingUser(null); setNewPassword(''); }} style={{ background: '#f3f4f6', color: '#374151', border: '1px solid #d1d5db' }}>{t('users.cancel')}</button>
+              <button type="submit" disabled={passwordLoading}>{passwordLoading ? t('users.saving') : t('users.updatePassword')}</button>
             </div>
           </form>
         </div>
@@ -91,10 +93,10 @@ export default function UsersPage() {
       <table style={{ width: '100%', borderCollapse: 'collapse' }}>
         <thead>
           <tr style={{ textAlign: 'left' }}>
-            <th style={{ padding: '12px 16px' }}>Username</th>
-            <th style={{ padding: '12px 16px' }}>Role</th>
-            <th style={{ padding: '12px 16px' }}>Created</th>
-            <th style={{ padding: '12px 16px', textAlign: 'right' }}>Actions</th>
+            <th style={{ padding: '12px 16px' }}>{t('users.username')}</th>
+            <th style={{ padding: '12px 16px' }}>{t('users.role')}</th>
+            <th style={{ padding: '12px 16px' }}>{t('users.created')}</th>
+            <th style={{ padding: '12px 16px', textAlign: 'right' }}>{t('users.actions')}</th>
           </tr>
         </thead>
         <tbody>
@@ -124,7 +126,7 @@ export default function UsersPage() {
         </tbody>
       </table>
 
-      {users.length === 0 && <p style={{ textAlign: 'center', color: '#9ca3af', marginTop: 32 }}>No users found.</p>}
+      {users.length === 0 && <p style={{ textAlign: 'center', color: '#9ca3af', marginTop: 32 }}>{t('users.noUsers')}</p>}
     </div>
   );
 }

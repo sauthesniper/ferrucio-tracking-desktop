@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { fetchSessionReport } from '../services/api';
+import { useTranslation } from '../i18n';
 
 interface SessionInfo {
   id: number;
@@ -42,6 +43,7 @@ interface Transfer {
 
 export default function SessionReportPage() {
   const { id } = useParams<{ id: string }>();
+  const { t } = useTranslation();
   const [session, setSession] = useState<SessionInfo | null>(null);
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [transfers, setTransfers] = useState<Transfer[]>([]);
@@ -71,12 +73,12 @@ export default function SessionReportPage() {
     return h > 0 ? `${h}h ${m}m` : `${m}m`;
   };
 
-  if (loading) return <div style={{ padding: 24, textAlign: 'center', color: '#6b7280' }}>Loading...</div>;
+  if (loading) return <div style={{ padding: 24, textAlign: 'center', color: '#6b7280' }}>{t('common.loading')}</div>;
 
   return (
     <div style={{ maxWidth: 1100, margin: '0 auto', padding: '24px 32px' }}>
       <Link to="/attendance" style={{ color: '#0369a1', textDecoration: 'none', fontSize: '0.85rem', display: 'inline-flex', alignItems: 'center', gap: 4, marginBottom: 16 }}>
-        ← Back to Sessions
+        {t('sessionReport.backToSessions')}
       </Link>
 
       {error && (
@@ -88,32 +90,32 @@ export default function SessionReportPage() {
       {session && (
         <>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 24 }}>
-            <h1 style={{ margin: 0 }}>Session Report #{session.id}</h1>
+            <h1 style={{ margin: 0 }}>{t('sessionReport.title')}{session.id}</h1>
           </div>
 
           <div style={{ display: 'flex', gap: 16, marginBottom: 24, flexWrap: 'wrap' }}>
             <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 10, padding: '14px 18px', minWidth: 180 }}>
-              <div style={{ fontSize: '0.8rem', color: '#6b7280', marginBottom: 4 }}>Leader</div>
+              <div style={{ fontSize: '0.8rem', color: '#6b7280', marginBottom: 4 }}>{t('sessionReport.leader')}</div>
               <div style={{ fontWeight: 600 }}>{session.leaderName}</div>
             </div>
             <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 10, padding: '14px 18px', minWidth: 180 }}>
-              <div style={{ fontSize: '0.8rem', color: '#6b7280', marginBottom: 4 }}>Type</div>
-              <div style={{ fontWeight: 600 }}>{session.type === 'check_in' ? 'Check-in' : 'Check-out'}</div>
+              <div style={{ fontSize: '0.8rem', color: '#6b7280', marginBottom: 4 }}>{t('sessionReport.type')}</div>
+              <div style={{ fontWeight: 600 }}>{session.type === 'check_in' ? t('attendance.checkIn') : t('attendance.checkOut')}</div>
             </div>
             <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 10, padding: '14px 18px', minWidth: 180 }}>
-              <div style={{ fontSize: '0.8rem', color: '#6b7280', marginBottom: 4 }}>Status</div>
+              <div style={{ fontSize: '0.8rem', color: '#6b7280', marginBottom: 4 }}>{t('sessionReport.status')}</div>
               <div style={{ fontWeight: 600 }}>{session.status}</div>
             </div>
             <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 10, padding: '14px 18px', minWidth: 180 }}>
-              <div style={{ fontSize: '0.8rem', color: '#6b7280', marginBottom: 4 }}>Employees</div>
+              <div style={{ fontSize: '0.8rem', color: '#6b7280', marginBottom: 4 }}>{t('sessionReport.employees')}</div>
               <div style={{ fontWeight: 600 }}>{session.employeeCount}</div>
             </div>
             <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 10, padding: '14px 18px', minWidth: 180 }}>
-              <div style={{ fontSize: '0.8rem', color: '#6b7280', marginBottom: 4 }}>Start Time</div>
+              <div style={{ fontSize: '0.8rem', color: '#6b7280', marginBottom: 4 }}>{t('sessionReport.startTime')}</div>
               <div style={{ fontWeight: 600, fontSize: '0.9rem' }}>{new Date(session.startTime).toLocaleString()}</div>
             </div>
             <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 10, padding: '14px 18px', minWidth: 180 }}>
-              <div style={{ fontSize: '0.8rem', color: '#6b7280', marginBottom: 4 }}>End Time</div>
+              <div style={{ fontSize: '0.8rem', color: '#6b7280', marginBottom: 4 }}>{t('sessionReport.endTime')}</div>
               <div style={{ fontWeight: 600, fontSize: '0.9rem' }}>{session.endTime ? new Date(session.endTime).toLocaleString() : '—'}</div>
             </div>
           </div>
@@ -123,7 +125,7 @@ export default function SessionReportPage() {
       {/* Leadership Transfers */}
       {transfers.length > 0 && (
         <div style={{ marginBottom: 24 }}>
-          <h2 style={{ fontSize: '1.1rem', marginBottom: 12 }}>Leadership Transfers</h2>
+          <h2 style={{ fontSize: '1.1rem', marginBottom: 12 }}>{t('sessionReport.leadershipTransfers')}</h2>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
             {transfers.map((t) => (
               <div key={t.id} style={{ background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 8, padding: '10px 14px', fontSize: '0.9rem' }}>
@@ -136,16 +138,16 @@ export default function SessionReportPage() {
       )}
 
       {/* Employee List */}
-      <h2 style={{ fontSize: '1.1rem', marginBottom: 12 }}>Employees</h2>
+      <h2 style={{ fontSize: '1.1rem', marginBottom: 12 }}>{t('sessionReport.employees')}</h2>
       <table style={{ width: '100%', borderCollapse: 'collapse' }}>
         <thead>
           <tr style={{ textAlign: 'left' }}>
-            <th style={{ padding: '12px 16px' }}>Employee</th>
-            <th style={{ padding: '12px 16px' }}>Check-in</th>
-            <th style={{ padding: '12px 16px' }}>Check-out</th>
-            <th style={{ padding: '12px 16px' }}>Duration</th>
-            <th style={{ padding: '12px 16px' }}>Type</th>
-            <th style={{ padding: '12px 16px' }}>Details</th>
+            <th style={{ padding: '12px 16px' }}>{t('sessionReport.employee')}</th>
+            <th style={{ padding: '12px 16px' }}>{t('sessionReport.checkIn')}</th>
+            <th style={{ padding: '12px 16px' }}>{t('sessionReport.checkOut')}</th>
+            <th style={{ padding: '12px 16px' }}>{t('sessionReport.duration')}</th>
+            <th style={{ padding: '12px 16px' }}>{t('sessionReport.type')}</th>
+            <th style={{ padding: '12px 16px' }}>{t('sessionReport.details')}</th>
           </tr>
         </thead>
         <tbody>
@@ -182,12 +184,12 @@ export default function SessionReportPage() {
               </td>
               <td style={{ padding: '12px 16px', fontSize: '0.8rem', color: '#6b7280' }}>
                 {emp.checkInType === 'manual' && emp.checkInLeaderName && (
-                  <div>Check-in by: {emp.checkInLeaderName}</div>
+                  <div>{t('sessionReport.checkInBy')} {emp.checkInLeaderName}</div>
                 )}
                 {emp.checkOutType === 'manual' && emp.checkOutLeaderName && (
-                  <div>Check-out by: {emp.checkOutLeaderName}</div>
+                  <div>{t('sessionReport.checkOutBy')} {emp.checkOutLeaderName}</div>
                 )}
-                {emp.manualReason && <div>Reason: {emp.manualReason}</div>}
+                {emp.manualReason && <div>{t('sessionReport.reason')} {emp.manualReason}</div>}
               </td>
             </tr>
           ))}
@@ -195,7 +197,7 @@ export default function SessionReportPage() {
       </table>
 
       {employees.length === 0 && (
-        <p style={{ textAlign: 'center', color: '#9ca3af', marginTop: 32 }}>No employees in this session.</p>
+        <p style={{ textAlign: 'center', color: '#9ca3af', marginTop: 32 }}>{t('sessionReport.noEmployees')}</p>
       )}
     </div>
   );
