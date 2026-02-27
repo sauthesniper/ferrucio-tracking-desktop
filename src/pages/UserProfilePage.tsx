@@ -8,6 +8,7 @@ import { generateDateRange } from '../utils/dateRange';
 import { computeAttendanceTotals } from '../utils/attendanceTotals';
 import type { UserDetails, EmployeeReport, LocationPoint } from '../types/userProfile';
 import { useTranslation } from '../i18n';
+import { useAuth } from '../context/AuthContext';
 
 function MapBoundsUpdater({ locations }: { locations: LocationPoint[] }) {
   const map = useMap();
@@ -24,6 +25,8 @@ function MapBoundsUpdater({ locations }: { locations: LocationPoint[] }) {
 export default function UserProfilePage() {
   const { id } = useParams<{ id: string }>();
   const { t } = useTranslation();
+  const { user: currentUser } = useAuth();
+  const isAdmin = currentUser?.role === 'admin';
 
   const dateRange = generateDateRange(30);
   const todayStr = dateRange[dateRange.length - 1];
@@ -34,6 +37,25 @@ export default function UserProfilePage() {
   const [selectedDate, setSelectedDate] = useState<string>(todayStr);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [terminateLoading, setTerminateLoading] = useState(false);
+  const [success, setSuccess] = useState('');
+
+  const handleTerminateContract = async () => {
+    if (!id || !user) return;
+    if (!confirm(t('userProfile.confirmTerminate'))) return;
+    setTerminateLoading(true);
+    setError('');
+    setSuccess('');
+    try {
+      await api.post(`/api/users/${id}/terminate-contract`);
+      setSuccess(t('userProfile.contractTerminated'));
+      setUser({ ...user, contract_ended_at: new Date().toISOString() });
+    } catch (err: any) {
+      setError(err?.response?.data?.error || 'Failed to terminate contract');
+    } finally {
+      setTerminateLoading(false);
+    }
+  };
 
   // Fetch user details and attendance report on mount
   useEffect(() => {
@@ -144,7 +166,41 @@ export default function UserProfilePage() {
               background: user.role === 'admin' ? '#dbeafe' : user.role === 'leader' ? '#fef3c7' : '#dcfce7',
               color: user.role === 'admin' ? '#1e40af' : user.role === 'leader' ? '#92400e' : '#166534',
             }}>{user.role}</span>
+            {user.contract_ended_at && (
+              <span style={{
+                padding: '2px 10px', borderRadius: 12, fontSize: '0.8rem', fontWeight: 500,
+                background: '#fef2f2', color: '#dc2626', border: '1px solid #fecaca',
+              }}>{t('userProfile.contractEnded')}</span>
+            )}
           </div>
+
+          {success && (
+            <div style={{ color: '#16a34a', background: '#f0fdf4', border: '1px solid #bbf7d0', padding: '10px 14px', borderRadius: 8, marginBottom: 16, fontSize: '0.9rem' }}>
+              {success}
+            </div>
+          )}
+
+          {isAdmin && !user.contract_ended_at && user.role !== 'admin' && (
+            <div style={{ marginBottom: 16 }}>
+              <button
+                onClick={handleTerminateContract}
+                disabled={terminateLoading}
+                style={{
+                  background: '#fef2f2', color: '#dc2626', border: '1px solid #fecaca',
+                  padding: '8px 16px', borderRadius: 8, cursor: terminateLoading ? 'not-allowed' : 'pointer',
+                  fontSize: '0.85rem', fontWeight: 500,
+                }}
+              >
+                {terminateLoading ? t('common.loading') : t('userProfile.terminateContract')}
+              </button>
+            </div>
+          )}
+
+          {user.contract_ended_at && (
+            <div style={{ background: '#fef2f2', border: '1px solid #fecaca', padding: '10px 14px', borderRadius: 8, marginBottom: 16, fontSize: '0.85rem', color: '#991b1b' }}>
+              {t('userProfile.contractEndedOn')} {new Date(user.contract_ended_at).toLocaleDateString()}
+            </div>
+          )}
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '12px 24px', fontSize: '0.9rem' }}>
             <div>

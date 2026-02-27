@@ -9,6 +9,10 @@ import SessionReportPage from './pages/SessionReportPage';
 import EmployeeReportPage from './pages/EmployeeReportPage';
 import UserProfilePage from './pages/UserProfilePage';
 import WorkHoursReportPage from './pages/WorkHoursReportPage';
+import AttendanceCalendarPage from './pages/AttendanceCalendarPage';
+import MonthlyReportPage from './pages/MonthlyReportPage';
+import EmployeeDashboardPage from './pages/EmployeeDashboardPage';
+import ScreenTimePage from './pages/ScreenTimePage';
 
 function NavBar() {
   const { user, logout } = useAuth();
@@ -23,6 +27,17 @@ function NavBar() {
         <circle cx="12" cy="12" r="10" /><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20" /><path d="M2 12h20" />
       </svg>
       <span style={{ fontWeight: 600, fontSize: '1rem', marginRight: 24 }}>CONI</span>
+
+      <Link to="/dashboard" style={{
+        display: 'flex', alignItems: 'center', gap: 6, padding: '6px 14px', borderRadius: 6,
+        textDecoration: 'none', color: isActive('/dashboard') ? 'white' : '#94a3b8',
+        background: isActive('/dashboard') ? '#1e3a5f' : 'transparent', transition: 'all 0.2s',
+      }}>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <rect x="3" y="3" width="7" height="7" /><rect x="14" y="3" width="7" height="7" /><rect x="14" y="14" width="7" height="7" /><rect x="3" y="14" width="7" height="7" />
+        </svg>
+        {t('nav.dashboard')}
+      </Link>
 
       <Link to="/users" style={{
         display: 'flex', alignItems: 'center', gap: 6, padding: '6px 14px', borderRadius: 6,
@@ -57,6 +72,17 @@ function NavBar() {
         {t('nav.workReport')}
       </Link>
 
+      <Link to="/reports/monthly" style={{
+        display: 'flex', alignItems: 'center', gap: 6, padding: '6px 14px', borderRadius: 6,
+        textDecoration: 'none', color: isActive('/reports/monthly') ? 'white' : '#94a3b8',
+        background: isActive('/reports/monthly') ? '#1e3a5f' : 'transparent', transition: 'all 0.2s',
+      }}>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><polyline points="14 2 14 8 20 8" /><line x1="16" y1="13" x2="8" y2="13" /><line x1="16" y1="17" x2="8" y2="17" />
+        </svg>
+        {t('nav.monthlyReport')}
+      </Link>
+
       <Link to="/map" style={{
         display: 'flex', alignItems: 'center', gap: 6, padding: '6px 14px', borderRadius: 6,
         textDecoration: 'none', color: isActive('/map') ? 'white' : '#94a3b8',
@@ -66,6 +92,17 @@ function NavBar() {
           <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" /><circle cx="12" cy="10" r="3" />
         </svg>
         {t('nav.map')}
+      </Link>
+
+      <Link to="/screen-time" style={{
+        display: 'flex', alignItems: 'center', gap: 6, padding: '6px 14px', borderRadius: 6,
+        textDecoration: 'none', color: isActive('/screen-time') ? 'white' : '#94a3b8',
+        background: isActive('/screen-time') ? '#1e3a5f' : 'transparent', transition: 'all 0.2s',
+      }}>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <rect x="2" y="3" width="20" height="14" rx="2" ry="2" /><line x1="8" y1="21" x2="16" y2="21" /><line x1="12" y1="17" x2="12" y2="21" />
+        </svg>
+        {t('nav.screenTime')}
       </Link>
 
       <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 12 }}>
@@ -107,13 +144,17 @@ export default function App() {
         <Routes>
           <Route path="/login" element={<LoginPage />} />
           <Route element={<ProtectedLayout />}>
+            <Route path="/dashboard" element={<EmployeeDashboardPage />} />
             <Route path="/users/:id" element={<UserProfilePage />} />
+            <Route path="/users/:id/calendar" element={<AttendanceCalendarPage />} />
             <Route path="/users" element={<UsersPage />} />
             <Route path="/attendance" element={<AttendancePage />} />
             <Route path="/attendance/session/:id" element={<SessionReportPage />} />
             <Route path="/attendance/employee/:id" element={<EmployeeReportPage />} />
             <Route path="/map" element={<MapPage />} />
             <Route path="/work-hours" element={<WorkHoursReportPage />} />
+            <Route path="/reports/monthly" element={<MonthlyReportPage />} />
+            <Route path="/screen-time" element={<ScreenTimePage />} />
           </Route>
           <Route path="*" element={<Navigate to="/users" replace />} />
         </Routes>

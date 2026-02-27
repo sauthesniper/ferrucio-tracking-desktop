@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Rectangle, useMapEvents } from 'react-leaflet';
+import { Rectangle, useMapEvents, Tooltip } from 'react-leaflet';
 import type { LeafletMouseEvent } from 'leaflet';
 import api from '../services/api';
 import { useAuth } from '../context/AuthContext';
@@ -11,6 +11,7 @@ interface GreenZoneRect {
   south_lat: number;
   west_lng: number;
   east_lng: number;
+  name: string | null;
   created_at: string;
 }
 
@@ -28,6 +29,7 @@ export default function GeofenceConfig() {
   const [firstCorner, setFirstCorner] = useState<{ lat: number; lng: number } | null>(null);
   const [previewRect, setPreviewRect] = useState<{ lat: number; lng: number } | null>(null);
   const [message, setMessage] = useState<{ text: string; type: 'success' | 'error' } | null>(null);
+  const [rectName, setRectName] = useState('');
 
   const fetchRects = useCallback(async () => {
     try {
@@ -47,9 +49,9 @@ export default function GeofenceConfig() {
     setTimeout(() => setMessage(null), 3000);
   }, []);
 
-  const handleAddRect = useCallback(async (north_lat: number, south_lat: number, west_lng: number, east_lng: number) => {
+  const handleAddRect = useCallback(async (north_lat: number, south_lat: number, west_lng: number, east_lng: number, name: string | null) => {
     try {
-      await api.post('/api/geofence/rects', { north_lat, south_lat, west_lng, east_lng });
+      await api.post('/api/geofence/rects', { north_lat, south_lat, west_lng, east_lng, name });
       showMessage(t('map.rectAdded'), 'success');
       fetchRects();
     } catch (err: any) {
@@ -82,10 +84,11 @@ export default function GeofenceConfig() {
         const east_lng = Math.max(firstCorner.lng, second.lng);
         const west_lng = Math.min(firstCorner.lng, second.lng);
 
-        handleAddRect(north_lat, south_lat, west_lng, east_lng);
+        handleAddRect(north_lat, south_lat, west_lng, east_lng, rectName.trim() || null);
         setFirstCorner(null);
         setPreviewRect(null);
         setIsDrawing(false);
+        setRectName('');
       }
     },
     mousemove(e: LeafletMouseEvent) {
@@ -98,6 +101,7 @@ export default function GeofenceConfig() {
     setIsDrawing((prev) => !prev);
     setFirstCorner(null);
     setPreviewRect(null);
+    setRectName('');
   }, []);
 
   // Compute preview bounds
@@ -135,7 +139,13 @@ export default function GeofenceConfig() {
                 }
               : undefined
           }
-        />
+        >
+          {rect.name && (
+            <Tooltip direction="center" permanent className="zone-name-label">
+              <span style={{ fontSize: '0.8rem', fontWeight: 600, color: '#166534' }}>{rect.name}</span>
+            </Tooltip>
+          )}
+        </Rectangle>
       ))}
 
       {/* Preview rectangle while drawing */}
@@ -192,19 +202,34 @@ export default function GeofenceConfig() {
               {isDrawing ? '✕ ' + t('common.cancel') : '+ ' + t('map.addRect')}
             </button>
             {isDrawing && (
-              <div
-                style={{
-                  background: '#dbeafe',
-                  border: '1px solid #3b82f6',
-                  color: '#1e40af',
-                  padding: '6px 12px',
-                  borderRadius: 6,
-                  fontSize: '0.8rem',
-                  maxWidth: 260,
-                }}
-              >
-                {t('map.drawInstructions')}
-              </div>
+              <>
+                <input
+                  type="text"
+                  value={rectName}
+                  onChange={(e) => setRectName(e.target.value)}
+                  placeholder={t('map.rectNamePlaceholder')}
+                  style={{
+                    padding: '6px 12px',
+                    fontSize: '0.85rem',
+                    border: '1px solid #3b82f6',
+                    borderRadius: 6,
+                    width: 200,
+                  }}
+                />
+                <div
+                  style={{
+                    background: '#dbeafe',
+                    border: '1px solid #3b82f6',
+                    color: '#1e40af',
+                    padding: '6px 12px',
+                    borderRadius: 6,
+                    fontSize: '0.8rem',
+                    maxWidth: 260,
+                  }}
+                >
+                  {t('map.drawInstructions')}
+                </div>
+              </>
             )}
           </div>
         )}

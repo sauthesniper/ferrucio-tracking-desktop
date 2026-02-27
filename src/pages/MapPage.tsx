@@ -11,6 +11,7 @@ interface LocationData {
   userId: number; username: string;
   latitude: number; longitude: number; timestamp: string;
   prevLatitude?: number; prevLongitude?: number;
+  phone?: string | null; last_location_at?: string;
 }
 
 interface AttendanceEmployee {
@@ -365,10 +366,11 @@ export default function MapPage() {
                   <span style={{ fontSize: '0.75rem', fontWeight: 600 }}>{loc.username}</span>
                 </Tooltip>
                 <Popup>
-                  <strong>{loc.username}</strong><br />
-                  Lat: {loc.latitude.toFixed(6)}<br />
-                  Lng: {loc.longitude.toFixed(6)}<br />
-                  {new Date(loc.timestamp).toLocaleString()}
+                  <div style={{ fontSize: '0.85rem', lineHeight: 1.6 }}>
+                    <strong>{loc.username}</strong><br />
+                    {t('map.phone')} {loc.phone || t('map.phoneNotSet')}<br />
+                    {t('map.lastLocation')} {new Date(loc.last_location_at || loc.timestamp).toLocaleString()}
+                  </div>
                 </Popup>
               </CircleMarker>
             );

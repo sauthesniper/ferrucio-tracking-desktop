@@ -9,6 +9,7 @@ interface User {
   username: string;
   role: string;
   createdAt: string;
+  contract_ended_at: string | null;
 }
 
 export default function UsersPage() {
@@ -102,7 +103,15 @@ export default function UsersPage() {
         <tbody>
           {users.map((u) => (
             <tr key={u.id} onClick={() => navigate(`/users/${u.id}`)} style={{ borderBottom: '1px solid #f3f4f6', cursor: 'pointer' }}>
-              <td style={{ padding: '12px 16px', fontWeight: 500 }}>{u.username}</td>
+              <td style={{ padding: '12px 16px', fontWeight: 500 }}>
+                {u.username}
+                {u.contract_ended_at && (
+                  <span style={{
+                    marginLeft: 8, padding: '1px 8px', borderRadius: 12, fontSize: '0.7rem', fontWeight: 500,
+                    background: '#fef2f2', color: '#dc2626', border: '1px solid #fecaca',
+                  }}>{t('users.contractEnded')}</span>
+                )}
+              </td>
               <td style={{ padding: '12px 16px' }}>
                 <span style={{
                   padding: '2px 10px', borderRadius: 12, fontSize: '0.8rem', fontWeight: 500,

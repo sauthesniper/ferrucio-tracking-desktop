@@ -46,6 +46,21 @@ export function fetchWorkHoursReport(from: string, to: string) {
   return api.get('/api/reports/work-hours', { params: { from, to } });
 }
 
+export function downloadMonthlyReportCsv(month: string) {
+  return api.get('/api/reports/monthly', {
+    params: { month, format: 'csv' },
+    responseType: 'blob',
+  });
+}
+
+export function fetchMonthlyReportJson(month: string) {
+  return api.get('/api/reports/monthly', { params: { month, format: 'json' } });
+}
+
+export function fetchScreenTime(from: string, to: string) {
+  return api.get('/api/reports/screen-time', { params: { from, to } });
+}
+
 export function fetchAlerts(sessionId?: number, employeeId?: number) {
   const params: Record<string, number> = {};
   if (sessionId) params.session_id = sessionId;

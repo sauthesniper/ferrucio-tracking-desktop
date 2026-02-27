@@ -12,6 +12,7 @@ export interface UserDetails {
   work_hours_limit: number | null;
   screen_time_limit: number | null;
   stationary_limit: number | null;
+  contract_ended_at: string | null;
   createdAt: string;
 }
 
