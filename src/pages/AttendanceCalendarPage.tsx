@@ -18,7 +18,7 @@ interface CalendarDay {
 
 interface Leave {
   id: number;
-  type: 'odihna' | 'medical';
+  type: string;
   startDate: string;
   endDate: string;
 }
@@ -156,10 +156,10 @@ export default function AttendanceCalendarPage() {
           <span style={{ width: 14, height: 14, borderRadius: 3, background: '#bbf7d0', border: '1px solid #86efac' }} /> {t('dashboard.checkedIn')}
         </span>
         <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-          <span style={{ width: 14, height: 14, borderRadius: 3, background: '#bfdbfe', border: '1px solid #93c5fd' }} /> {t('calendar.leaveVacation')}
+          <span style={{ width: 14, height: 14, borderRadius: 3, background: '#bfdbfe', border: '1px solid #93c5fd' }} /> {t('leave.CO')}
         </span>
         <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-          <span style={{ width: 14, height: 14, borderRadius: 3, background: '#fed7aa', border: '1px solid #fdba74' }} /> {t('calendar.leaveMedical')}
+          <span style={{ width: 14, height: 14, borderRadius: 3, background: '#fed7aa', border: '1px solid #fdba74' }} /> {t('leave.CM')}
         </span>
       </div>
 
@@ -180,8 +180,9 @@ export default function AttendanceCalendarPage() {
 
           let bg = '#fff';
           let border = '1px solid #e5e7eb';
-          if (leave?.type === 'odihna') { bg = '#bfdbfe'; border = '1px solid #93c5fd'; }
-          else if (leave?.type === 'medical') { bg = '#fed7aa'; border = '1px solid #fdba74'; }
+          if (leave?.type === 'CO') { bg = '#bfdbfe'; border = '1px solid #93c5fd'; }
+          else if (leave?.type === 'CM') { bg = '#fed7aa'; border = '1px solid #fdba74'; }
+          else if (leave) { bg = '#e9d5ff'; border = '1px solid #c4b5fd'; }
           else if (dayData && dayData.sessions.length > 0) { bg = '#bbf7d0'; border = '1px solid #86efac'; }
           if (isSelected) border = '2px solid #2563eb';
 
@@ -199,8 +200,8 @@ export default function AttendanceCalendarPage() {
                 <div style={{ color: '#166534', fontSize: '0.75rem' }}>{dayData.totalHours}{t('calendar.hours')}</div>
               )}
               {leave && (
-                <div style={{ fontSize: '0.7rem', color: leave.type === 'medical' ? '#9a3412' : '#1e40af' }}>
-                  {leave.type === 'medical' ? t('calendar.leaveMedical') : t('calendar.leaveVacation')}
+                <div style={{ fontSize: '0.7rem', color: leave.type === 'CM' ? '#9a3412' : '#1e40af' }}>
+                  {leave.type}
                 </div>
               )}
             </div>
@@ -216,11 +217,11 @@ export default function AttendanceCalendarPage() {
           {selectedDayLeave && (
             <div style={{
               padding: '8px 14px', borderRadius: 6, marginBottom: 12, fontSize: '0.9rem',
-              background: selectedDayLeave.type === 'medical' ? '#fff7ed' : '#eff6ff',
-              border: selectedDayLeave.type === 'medical' ? '1px solid #fdba74' : '1px solid #93c5fd',
-              color: selectedDayLeave.type === 'medical' ? '#9a3412' : '#1e40af',
+              background: selectedDayLeave.type === 'CM' ? '#fff7ed' : '#eff6ff',
+              border: selectedDayLeave.type === 'CM' ? '1px solid #fdba74' : '1px solid #93c5fd',
+              color: selectedDayLeave.type === 'CM' ? '#9a3412' : '#1e40af',
             }}>
-              {t('calendar.leave')}: {selectedDayLeave.type === 'medical' ? t('calendar.leaveMedical') : t('calendar.leaveVacation')}
+              {t('calendar.leave')}: {t(`leave.${selectedDayLeave.type}`)}
               {' '}({selectedDayLeave.startDate} — {selectedDayLeave.endDate})
             </div>
           )}

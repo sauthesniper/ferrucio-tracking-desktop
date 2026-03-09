@@ -3,7 +3,7 @@ import { useParams, Link } from 'react-router-dom';
 import { MapContainer, TileLayer, Polyline, CircleMarker, Popup, useMap } from 'react-leaflet';
 import type { LatLngBoundsExpression } from 'leaflet';
 import 'leaflet/dist/leaflet.css';
-import api, { fetchEmployeeReport } from '../services/api';
+import api, { fetchEmployeeReport, fetchLeaves, createLeave, deleteLeave } from '../services/api';
 import { generateDateRange } from '../utils/dateRange';
 import { computeAttendanceTotals } from '../utils/attendanceTotals';
 import type { UserDetails, EmployeeReport, LocationPoint } from '../types/userProfile';
@@ -40,6 +40,81 @@ export default function UserProfilePage() {
   const [terminateLoading, setTerminateLoading] = useState(false);
   const [success, setSuccess] = useState('');
 
+  // Leave management state
+  interface Leave { id: number; employeeId: number; type: string; startDate: string; endDate: string; }
+  const [leaves, setLeaves] = useState<Leave[]>([]);
+  const [showLeaveModal, setShowLeaveModal] = useState(false);
+  const [leaveType, setLeaveType] = useState('');
+  const [leaveStart, setLeaveStart] = useState('');
+  const [leaveEnd, setLeaveEnd] = useState('');
+  const [leaveSaving, setLeaveSaving] = useState(false);
+  const [leaveError, setLeaveError] = useState('');
+  const [leaveSuccess, setLeaveSuccess] = useState('');
+
+  const LEAVE_TYPES = ['CO', 'CM', 'CFP', 'CS', 'CC', 'CI'] as const;
+
+  // CO uses working days (Mon-Fri), CM uses calendar days, others use working days
+  const countDays = (start: string, end: string, type: string): number => {
+    if (!start || !end) return 0;
+    const s = new Date(start);
+    const e = new Date(end);
+    if (e < s) return 0;
+    if (type === 'CM') {
+      // Calendar days
+      return Math.round((e.getTime() - s.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+    }
+    // Working days (Mon-Fri)
+    let count = 0;
+    const d = new Date(s);
+    while (d <= e) {
+      const dow = d.getDay();
+      if (dow !== 0 && dow !== 6) count++;
+      d.setDate(d.getDate() + 1);
+    }
+    return count;
+  };
+
+  const leaveDays = countDays(leaveStart, leaveEnd, leaveType);
+
+  const loadLeaves = async () => {
+    if (!id) return;
+    try {
+      const res = await fetchLeaves(Number(id));
+      setLeaves(res.data.leaves || []);
+    } catch { /* ignore */ }
+  };
+
+  const handleCreateLeave = async () => {
+    if (!id || !leaveType || !leaveStart || !leaveEnd) return;
+    setLeaveSaving(true);
+    setLeaveError('');
+    setLeaveSuccess('');
+    try {
+      await createLeave({ employee_id: Number(id), type: leaveType, start_date: leaveStart, end_date: leaveEnd });
+      setLeaveSuccess(t('leave.created'));
+      setShowLeaveModal(false);
+      setLeaveType(''); setLeaveStart(''); setLeaveEnd('');
+      loadLeaves();
+    } catch (err: any) {
+      const code = err?.response?.data?.code;
+      if (code === 'LEAVE_OVERLAP') setLeaveError(t('leave.overlap'));
+      else setLeaveError(err?.response?.data?.error || t('leave.error'));
+    } finally {
+      setLeaveSaving(false);
+    }
+  };
+
+  const handleDeleteLeave = async (leaveId: number) => {
+    if (!confirm(t('leave.confirmDelete'))) return;
+    try {
+      await deleteLeave(leaveId);
+      setLeaveSuccess(t('leave.deleted'));
+      loadLeaves();
+    } catch (err: any) {
+      setLeaveError(err?.response?.data?.error || t('leave.error'));
+    }
+  };
+
   const handleTerminateContract = async () => {
     if (!id || !user) return;
     if (!confirm(t('userProfile.confirmTerminate'))) return;
@@ -73,6 +148,11 @@ export default function UserProfilePage() {
         setUser(userRes.data);
         setReport(reportRes.data);
         setLocations(locRes.data.locations || []);
+        // Load leaves
+        try {
+          const lvRes = await fetchLeaves(Number(id));
+          setLeaves(lvRes.data.leaves || []);
+        } catch { /* ignore */ }
       } catch (err: any) {
         setError(err?.response?.data?.error || 'Failed to load user profile');
       } finally {
@@ -342,6 +422,151 @@ export default function UserProfilePage() {
           </div>
         );
       })()}
+
+      {/* Leave Management Section */}
+      {user && !user.contract_ended_at && (
+        <div style={{ marginBottom: 24 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12 }}>
+            <h2 style={{ fontSize: '1.1rem', margin: 0 }}>{t('leave.title')}</h2>
+            {isAdmin && (
+              <button
+                onClick={() => { setShowLeaveModal(true); setLeaveError(''); setLeaveSuccess(''); setLeaveType(''); setLeaveStart(''); setLeaveEnd(''); }}
+                style={{ padding: '6px 14px', borderRadius: 6, border: '1px solid #2563eb', background: '#2563eb', color: '#fff', cursor: 'pointer', fontSize: '0.85rem', fontWeight: 500 }}
+              >
+                + {t('leave.addLeave')}
+              </button>
+            )}
+          </div>
+
+          {leaveSuccess && (
+            <div style={{ color: '#166534', background: '#f0fdf4', border: '1px solid #bbf7d0', padding: '8px 14px', borderRadius: 8, marginBottom: 12, fontSize: '0.85rem' }}>
+              {leaveSuccess}
+            </div>
+          )}
+          {leaveError && !showLeaveModal && (
+            <div style={{ color: '#dc2626', background: '#fef2f2', border: '1px solid #fecaca', padding: '8px 14px', borderRadius: 8, marginBottom: 12, fontSize: '0.85rem' }}>
+              {leaveError}
+            </div>
+          )}
+
+          {leaves.length > 0 ? (
+            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+              <thead>
+                <tr style={{ textAlign: 'left', background: '#f8fafc' }}>
+                  <th style={{ padding: '10px 16px', fontSize: '0.85rem' }}>{t('leave.type')}</th>
+                  <th style={{ padding: '10px 16px', fontSize: '0.85rem' }}>{t('leave.startDate')}</th>
+                  <th style={{ padding: '10px 16px', fontSize: '0.85rem' }}>{t('leave.endDate')}</th>
+                  <th style={{ padding: '10px 16px', fontSize: '0.85rem' }}>{t('leave.days')}</th>
+                  <th style={{ padding: '10px 16px', fontSize: '0.85rem' }}>{t('leave.actions')}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {leaves.map(lv => {
+                  const days = countDays(lv.startDate, lv.endDate, lv.type);
+                  const isCalendar = lv.type === 'CM';
+                  return (
+                    <tr key={lv.id} style={{ borderBottom: '1px solid #f3f4f6' }}>
+                      <td style={{ padding: '10px 16px' }}>
+                        <span style={{
+                          padding: '2px 10px', borderRadius: 8, fontSize: '0.8rem', fontWeight: 600,
+                          background: lv.type === 'CO' ? '#dbeafe' : lv.type === 'CM' ? '#fff7ed' : '#f3e8ff',
+                          color: lv.type === 'CO' ? '#1e40af' : lv.type === 'CM' ? '#9a3412' : '#6b21a8',
+                        }}>
+                          {lv.type}
+                        </span>
+                      </td>
+                      <td style={{ padding: '10px 16px', fontSize: '0.85rem' }}>{lv.startDate}</td>
+                      <td style={{ padding: '10px 16px', fontSize: '0.85rem' }}>{lv.endDate}</td>
+                      <td style={{ padding: '10px 16px', fontSize: '0.85rem' }}>
+                        {days} {isCalendar ? t('leave.calendarDays') : t('leave.workingDays')}
+                      </td>
+                      <td style={{ padding: '10px 16px' }}>
+                        {isAdmin && (
+                          <button
+                            onClick={() => handleDeleteLeave(lv.id)}
+                            style={{ padding: '4px 10px', borderRadius: 6, border: '1px solid #fecaca', background: '#fef2f2', color: '#dc2626', cursor: 'pointer', fontSize: '0.8rem' }}
+                          >
+                            {t('leave.delete')}
+                          </button>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          ) : (
+            <p style={{ color: '#9ca3af', fontSize: '0.85rem' }}>{t('leave.noLeaves')}</p>
+          )}
+        </div>
+      )}
+
+      {/* Leave Modal */}
+      {showLeaveModal && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
+          <div style={{ background: '#fff', borderRadius: 12, padding: 24, width: 440 }}>
+            <h2 style={{ margin: '0 0 16px 0', fontSize: '1.1rem' }}>{t('leave.addLeave')}</h2>
+
+            {leaveError && (
+              <div style={{ color: '#dc2626', background: '#fef2f2', border: '1px solid #fecaca', padding: '8px 14px', borderRadius: 8, marginBottom: 12, fontSize: '0.85rem' }}>
+                {leaveError}
+              </div>
+            )}
+
+            <div style={{ marginBottom: 14 }}>
+              <label style={{ display: 'block', marginBottom: 4, fontSize: '0.85rem', color: '#374151', fontWeight: 500 }}>{t('leave.type')}</label>
+              <select
+                value={leaveType}
+                onChange={e => setLeaveType(e.target.value)}
+                style={{ width: '100%', padding: '8px 12px', borderRadius: 6, border: '1px solid #d1d5db', fontSize: '0.9rem', boxSizing: 'border-box' }}
+              >
+                <option value="">{t('leave.selectType')}</option>
+                {LEAVE_TYPES.map(lt => (
+                  <option key={lt} value={lt}>{t(`leave.${lt}`)}</option>
+                ))}
+              </select>
+            </div>
+
+            <div style={{ display: 'flex', gap: 12, marginBottom: 14 }}>
+              <div style={{ flex: 1 }}>
+                <label style={{ display: 'block', marginBottom: 4, fontSize: '0.85rem', color: '#374151', fontWeight: 500 }}>{t('leave.startDate')}</label>
+                <input type="date" value={leaveStart} onChange={e => setLeaveStart(e.target.value)}
+                  style={{ width: '100%', padding: '8px 12px', borderRadius: 6, border: '1px solid #d1d5db', boxSizing: 'border-box' }} />
+              </div>
+              <div style={{ flex: 1 }}>
+                <label style={{ display: 'block', marginBottom: 4, fontSize: '0.85rem', color: '#374151', fontWeight: 500 }}>{t('leave.endDate')}</label>
+                <input type="date" value={leaveEnd} onChange={e => setLeaveEnd(e.target.value)}
+                  style={{ width: '100%', padding: '8px 12px', borderRadius: 6, border: '1px solid #d1d5db', boxSizing: 'border-box' }} />
+              </div>
+            </div>
+
+            {leaveType && leaveStart && leaveEnd && leaveEnd >= leaveStart && (
+              <div style={{ background: '#f0f9ff', border: '1px solid #bae6fd', padding: '10px 14px', borderRadius: 8, marginBottom: 14, fontSize: '0.9rem', color: '#0c4a6e' }}>
+                <strong>{leaveDays}</strong> {leaveType === 'CM' ? t('leave.calendarDays') : t('leave.workingDays')}
+              </div>
+            )}
+
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
+              <button
+                onClick={() => setShowLeaveModal(false)}
+                style={{ padding: '8px 16px', borderRadius: 6, border: '1px solid #d1d5db', background: '#fff', color: '#111827', cursor: 'pointer', fontSize: '0.85rem' }}
+              >
+                {t('leave.cancel')}
+              </button>
+              <button
+                onClick={handleCreateLeave}
+                disabled={leaveSaving || !leaveType || !leaveStart || !leaveEnd || leaveEnd < leaveStart}
+                style={{
+                  padding: '8px 16px', borderRadius: 6, border: 'none', background: '#2563eb', color: '#fff', cursor: 'pointer', fontSize: '0.85rem', fontWeight: 500,
+                  opacity: (!leaveType || !leaveStart || !leaveEnd || leaveEnd < leaveStart) ? 0.5 : 1,
+                }}
+              >
+                {leaveSaving ? t('common.loading') : t('leave.save')}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Location Map Section */}
       <div style={{ marginBottom: 24 }}>

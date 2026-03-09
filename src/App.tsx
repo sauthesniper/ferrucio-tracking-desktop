@@ -1,18 +1,16 @@
-import { BrowserRouter, Routes, Route, Navigate, Link, useLocation, Outlet } from 'react-router-dom';
+﻿import { BrowserRouter, Routes, Route, Navigate, Link, useLocation, Outlet } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { useTranslation } from './i18n';
 import LoginPage from './pages/LoginPage';
-import UsersPage from './pages/UsersPage';
+import EmployeesPage from './pages/EmployeesPage';
 import MapPage from './pages/MapPage';
 import AttendancePage from './pages/AttendancePage';
 import SessionReportPage from './pages/SessionReportPage';
 import EmployeeReportPage from './pages/EmployeeReportPage';
 import UserProfilePage from './pages/UserProfilePage';
-import WorkHoursReportPage from './pages/WorkHoursReportPage';
+import ReportsPage from './pages/ReportsPage';
 import AttendanceCalendarPage from './pages/AttendanceCalendarPage';
-import MonthlyReportPage from './pages/MonthlyReportPage';
 import EmployeeDashboardPage from './pages/EmployeeDashboardPage';
-import ScreenTimePage from './pages/ScreenTimePage';
 
 function NavBar() {
   const { user, logout } = useAuth();
@@ -26,7 +24,7 @@ function NavBar() {
       <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: 8 }}>
         <circle cx="12" cy="12" r="10" /><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20" /><path d="M2 12h20" />
       </svg>
-      <span style={{ fontWeight: 600, fontSize: '1rem', marginRight: 24 }}>CONI</span>
+      <span style={{ fontWeight: 600, fontSize: '1rem', marginRight: 24, color: '#111827' }}>ADMIN</span>
 
       <Link to="/dashboard" style={{
         display: 'flex', alignItems: 'center', gap: 6, padding: '6px 14px', borderRadius: 6,
@@ -47,7 +45,7 @@ function NavBar() {
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
           <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M22 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" />
         </svg>
-        {t('nav.users')}
+        {t('nav.employees')}
       </Link>
 
       <Link to="/attendance" style={{
@@ -61,26 +59,15 @@ function NavBar() {
         {t('nav.attendance')}
       </Link>
 
-      <Link to="/work-hours" style={{
+      <Link to="/reports" style={{
         display: 'flex', alignItems: 'center', gap: 6, padding: '6px 14px', borderRadius: 6,
-        textDecoration: 'none', color: isActive('/work-hours') ? 'white' : '#94a3b8',
-        background: isActive('/work-hours') ? '#1e3a5f' : 'transparent', transition: 'all 0.2s',
-      }}>
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" />
-        </svg>
-        {t('nav.workReport')}
-      </Link>
-
-      <Link to="/reports/monthly" style={{
-        display: 'flex', alignItems: 'center', gap: 6, padding: '6px 14px', borderRadius: 6,
-        textDecoration: 'none', color: isActive('/reports/monthly') ? 'white' : '#94a3b8',
-        background: isActive('/reports/monthly') ? '#1e3a5f' : 'transparent', transition: 'all 0.2s',
+        textDecoration: 'none', color: isActive('/reports') ? 'white' : '#94a3b8',
+        background: isActive('/reports') ? '#1e3a5f' : 'transparent', transition: 'all 0.2s',
       }}>
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
           <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><polyline points="14 2 14 8 20 8" /><line x1="16" y1="13" x2="8" y2="13" /><line x1="16" y1="17" x2="8" y2="17" />
         </svg>
-        {t('nav.monthlyReport')}
+        {t('nav.reports')}
       </Link>
 
       <Link to="/map" style={{
@@ -92,17 +79,6 @@ function NavBar() {
           <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" /><circle cx="12" cy="10" r="3" />
         </svg>
         {t('nav.map')}
-      </Link>
-
-      <Link to="/screen-time" style={{
-        display: 'flex', alignItems: 'center', gap: 6, padding: '6px 14px', borderRadius: 6,
-        textDecoration: 'none', color: isActive('/screen-time') ? 'white' : '#94a3b8',
-        background: isActive('/screen-time') ? '#1e3a5f' : 'transparent', transition: 'all 0.2s',
-      }}>
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <rect x="2" y="3" width="20" height="14" rx="2" ry="2" /><line x1="8" y1="21" x2="16" y2="21" /><line x1="12" y1="17" x2="12" y2="21" />
-        </svg>
-        {t('nav.screenTime')}
       </Link>
 
       <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 12 }}>
@@ -147,14 +123,15 @@ export default function App() {
             <Route path="/dashboard" element={<EmployeeDashboardPage />} />
             <Route path="/users/:id" element={<UserProfilePage />} />
             <Route path="/users/:id/calendar" element={<AttendanceCalendarPage />} />
-            <Route path="/users" element={<UsersPage />} />
+            <Route path="/users" element={<EmployeesPage />} />
             <Route path="/attendance" element={<AttendancePage />} />
             <Route path="/attendance/session/:id" element={<SessionReportPage />} />
             <Route path="/attendance/employee/:id" element={<EmployeeReportPage />} />
             <Route path="/map" element={<MapPage />} />
-            <Route path="/work-hours" element={<WorkHoursReportPage />} />
-            <Route path="/reports/monthly" element={<MonthlyReportPage />} />
-            <Route path="/screen-time" element={<ScreenTimePage />} />
+            <Route path="/reports" element={<ReportsPage />} />
+            <Route path="/work-hours" element={<Navigate to="/reports" replace />} />
+            <Route path="/reports/monthly" element={<Navigate to="/reports" replace />} />
+            <Route path="/screen-time" element={<Navigate to="/reports" replace />} />
           </Route>
           <Route path="*" element={<Navigate to="/users" replace />} />
         </Routes>

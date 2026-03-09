@@ -1,11 +1,11 @@
-import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { MapContainer, TileLayer, CircleMarker, Marker, Popup, Tooltip, Polyline, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import api from '../services/api';
 import { fetchSessions, fetchSessionEmployees } from '../services/api';
 import { useTranslation } from '../i18n';
-import GeofenceConfig from '../components/GeofenceConfig';
+import { useGeofenceState, GeofenceMapElements, GeofenceToolbar, GeofenceAlerts, GeofenceNameModal } from '../components/GeofenceConfig';
 
 interface LocationData {
   userId: number; username: string;
@@ -54,13 +54,12 @@ function makeArrowIcon(angle: number): L.DivIcon {
 // Acceleration magnitude → color (green=low, yellow=medium, red=high)
 function accelColor(ax: number | null, ay: number | null, az: number | null): string {
   if (ax == null || ay == null || az == null) return '#6b7280';
-  // Remove gravity (~9.8) from magnitude
   const mag = Math.sqrt(ax * ax + ay * ay + az * az);
-  const net = Math.abs(mag - 9.81); // net acceleration beyond gravity
-  if (net < 0.5) return '#22c55e';  // green — still/slow
-  if (net < 2) return '#eab308';    // yellow — moderate
-  if (net < 5) return '#f97316';    // orange — fast
-  return '#dc2626';                  // red — high acceleration
+  const net = Math.abs(mag - 9.81);
+  if (net < 0.5) return '#22c55e';
+  if (net < 2) return '#eab308';
+  if (net < 5) return '#f97316';
+  return '#dc2626';
 }
 
 function haversineKm(lat1: number, lon1: number, lat2: number, lon2: number): number {
@@ -107,7 +106,6 @@ function MapController({ locations, selectedUserIds, histories }: {
   const initialFitDone = useRef(false);
   const prevSelectedCount = useRef(0);
 
-  // Auto-fit all users on initial load (only once when locations first arrive)
   useEffect(() => {
     if (initialFitDone.current || locations.length === 0) return;
     const bounds = L.latLngBounds(locations.map(l => [l.latitude, l.longitude] as [number, number]));
@@ -115,29 +113,23 @@ function MapController({ locations, selectedUserIds, histories }: {
     initialFitDone.current = true;
   }, [locations, map]);
 
-  // Auto-fit to selected user's history trail when history loads
   useEffect(() => {
     const ids = Array.from(selectedUserIds);
     if (ids.length === 0) return;
-
-    // Collect all points: history points + current positions of selected users
     const allPoints: [number, number][] = [];
     for (const uid of ids) {
       const pts = histories[uid];
       if (pts && pts.length > 0) {
         pts.forEach(p => allPoints.push([p.latitude, p.longitude]));
       }
-      // Also include current position
       const loc = locations.find(l => l.userId === uid);
       if (loc) allPoints.push([loc.latitude, loc.longitude]);
     }
-
     if (allPoints.length === 0) return;
     const bounds = L.latLngBounds(allPoints);
     map.fitBounds(bounds, { padding: [50, 50], maxZoom: 16 });
   }, [selectedUserIds, histories, locations, map]);
 
-  // When selection goes from >0 to 0, fit back to all users
   useEffect(() => {
     if (prevSelectedCount.current > 0 && selectedUserIds.size === 0 && locations.length > 0) {
       const bounds = L.latLngBounds(locations.map(l => [l.latitude, l.longitude] as [number, number]));
@@ -158,7 +150,6 @@ function downsample(pts: HistoryPoint[], max: number): HistoryPoint[] {
   for (let i = 0; i < max; i++) {
     result.push(pts[Math.floor(i * step)]);
   }
-  // Always include last point
   if (result[result.length - 1] !== pts[pts.length - 1]) result.push(pts[pts.length - 1]);
   return result;
 }
@@ -201,6 +192,7 @@ const MemoizedHistoryDots = React.memo(HistoryDots);
 
 export default function MapPage() {
   const { t } = useTranslation();
+  const geofence = useGeofenceState();
   const [locations, setLocations] = useState<LocationData[]>([]);
   const [selectedUserIds, setSelectedUserIds] = useState<Set<number>>(new Set());
   const [histories, setHistories] = useState<Record<number, HistoryPoint[]>>({});
@@ -223,7 +215,7 @@ export default function MapPage() {
   }, []);
 
   const fetchLocations = useCallback(async () => {
-    if (fetchingRef.current) return; // skip if previous fetch still running
+    if (fetchingRef.current) return;
     fetchingRef.current = true;
     setLoading(true);
     try {
@@ -235,11 +227,9 @@ export default function MapPage() {
     } finally { setLoading(false); }
     if (selectedRef.current.size > 0) fetchHistories(selectedRef.current);
 
-    // Fetch active attendance sessions and their employees
     try {
       const sessRes = await fetchSessions('active');
       const activeSessions = sessRes.data.sessions || [];
-      // Fetch all session employees in parallel instead of sequentially
       const empResults = await Promise.all(
         activeSessions.map((sess: any) =>
           fetchSessionEmployees(sess.id).catch(() => ({ data: { employees: [] } }))
@@ -250,7 +240,6 @@ export default function MapPage() {
         const checkedIn = (empRes.data.employees || []).filter((e: any) => !e.check_out_at);
         allEmps.push(...checkedIn);
       }
-      // Deduplicate by employee_id
       const seen = new Set<number>();
       setAttendanceEmployees(allEmps.filter((e) => {
         if (seen.has(e.employee_id)) return false;
@@ -299,6 +288,13 @@ export default function MapPage() {
             {loading && <span style={{ marginLeft: 6 }}>⟳</span>}
           </span>
         </div>
+      </div>
+
+      {/* Toolbar — outside the map container (Req 4.1, 4.3) */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginBottom: 10, flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+          <GeofenceToolbar geofence={geofence} />
+        </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
           <input
             type="text"
@@ -322,9 +318,17 @@ export default function MapPage() {
         </div>
       </div>
 
-      {error && <div style={{ color: '#dc2626', background: '#fef2f2', border: '1px solid #fecaca', padding: '10px 14px', borderRadius: 8, marginBottom: 12, fontSize: '0.9rem' }}>{error}</div>}
+      {/* Alerts — outside the map container (Req 4.2) */}
+      {error && (
+        <div style={{ color: '#dc2626', background: '#fef2f2', border: '1px solid #fecaca', padding: '10px 14px', borderRadius: 8, marginBottom: 10, fontSize: '0.9rem' }}>
+          {error}
+        </div>
+      )}
+      <div style={{ marginBottom: 10 }}>
+        <GeofenceAlerts geofence={geofence} />
+      </div>
 
-      {/* Acceleration legend */}
+      {/* Acceleration legend — outside the map container (Req 4.3) */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 16, fontSize: '0.8rem', color: '#6b7280', marginBottom: 8 }}>
         <span>{t('map.historyHint')}</span>
         <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}><span style={{ width: 10, height: 10, borderRadius: '50%', background: '#22c55e', display: 'inline-block' }} /> {t('map.still')}</span>
@@ -334,11 +338,12 @@ export default function MapPage() {
         <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}><span style={{ width: 10, height: 10, borderRadius: '50%', border: '2px solid #059669', display: 'inline-block' }} /> {t('map.checkedIn')}</span>
       </div>
 
+      {/* Map container — only map elements inside (Req 4.4) */}
       <div style={{ borderRadius: 12, overflow: 'hidden', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}>
         <MapContainer center={[20, 0]} zoom={2} style={{ height: 550, width: '100%' }}>
           <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" attribution="&copy; OpenStreetMap contributors" />
           <MapController locations={filteredLocations} selectedUserIds={selectedUserIds} histories={histories} />
-          <GeofenceConfig />
+          <GeofenceMapElements geofence={geofence} />
 
           {/* History trails */}
           {selectedArr.map((uid, idx) => {
@@ -348,10 +353,9 @@ export default function MapPage() {
             return <Polyline key={`trail-${uid}`} positions={pts.map(p => [p.latitude, p.longitude] as [number, number])} pathOptions={{ color, weight: 3, opacity: 0.7, dashArray: '6 4' }} />;
           })}
 
-          {/* History dots — colored by acceleration, downsampled for performance */}
           <MemoizedHistoryDots selectedArr={selectedArr} histories={histories} />
 
-          {/* Current position — red dots with username labels */}
+          {/* Current position markers */}
           {filteredLocations.map((loc) => {
             const isSelected = selectedUserIds.has(loc.userId);
             return (
@@ -383,7 +387,7 @@ export default function MapPage() {
             return <Marker key={`arrow-${loc.userId}`} position={[loc.latitude, loc.longitude]} icon={makeArrowIcon(angle)} interactive={false} />;
           })}
 
-          {/* Checked-in employee markers (from attendance) */}
+          {/* Checked-in employee markers */}
           {filteredAttendanceEmployees.map((emp) => {
             const loc = filteredLocations.find(l => l.userId === emp.employee_id);
             if (!loc) return null;
@@ -429,6 +433,9 @@ export default function MapPage() {
           })}
         </div>
       )}
+
+      {/* Name modal for geofence zone */}
+      <GeofenceNameModal geofence={geofence} />
     </div>
   );
 }

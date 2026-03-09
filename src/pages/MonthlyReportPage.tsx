@@ -6,6 +6,7 @@ interface MonthlyReportRow {
   name: string;
   uniqueCode: string;
   days: number[];
+  leaves: (string | null)[];
   total: number;
 }
 
@@ -117,11 +118,20 @@ export default function MonthlyReportPage() {
                 <tr key={idx} style={{ borderBottom: '1px solid #f3f4f6' }}>
                   <td style={{ padding: '6px 10px', position: 'sticky', left: 0, background: 'white', zIndex: 1 }}>{r.name}</td>
                   <td style={{ padding: '6px 10px', fontFamily: 'monospace', fontWeight: 500 }}>{r.uniqueCode || '—'}</td>
-                  {Array.from({ length: daysInMonth }, (_, i) => (
-                    <td key={i} style={{ padding: '6px 4px', textAlign: 'center', color: r.days[i] > 0 ? '#111' : '#d1d5db' }}>
-                      {r.days[i] > 0 ? r.days[i] : '—'}
-                    </td>
-                  ))}
+                  {Array.from({ length: daysInMonth }, (_, i) => {
+                    const leave = (r as any).leaves?.[i] || null;
+                    return (
+                      <td key={i} style={{
+                        padding: '6px 4px', textAlign: 'center',
+                        color: leave ? (leave === 'CM' ? '#9a3412' : '#1e40af') : (r.days[i] > 0 ? '#111' : '#d1d5db'),
+                        fontWeight: leave ? 600 : 400,
+                        fontSize: leave ? '0.7rem' : undefined,
+                        background: leave ? (leave === 'CM' ? '#fff7ed' : leave === 'CO' ? '#eff6ff' : '#faf5ff') : undefined,
+                      }}>
+                        {leave ? leave : (r.days[i] > 0 ? r.days[i] : '—')}
+                      </td>
+                    );
+                  })}
                   <td style={{ padding: '6px 10px', textAlign: 'right', fontWeight: 600 }}>{r.total}h</td>
                 </tr>
               ))}

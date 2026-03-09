@@ -3,6 +3,16 @@ import { Link } from 'react-router-dom';
 import { fetchSessions } from '../services/api';
 import { useTranslation } from '../i18n';
 
+function formatDuration(startStr: string, endStr: string | null): string {
+  const start = new Date(startStr).getTime();
+  const end = endStr ? new Date(endStr).getTime() : Date.now();
+  const diffMs = end - start;
+  if (diffMs < 0) return '0h 0m';
+  const hours = Math.floor(diffMs / 3600000);
+  const minutes = Math.floor((diffMs % 3600000) / 60000);
+  return `${hours}h ${minutes}m`;
+}
+
 interface Session {
   id: number;
   leader_id: number;
@@ -22,6 +32,13 @@ export default function AttendancePage() {
   const [search, setSearch] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [now, setNow] = useState(Date.now());
+
+  // Update `now` every 60 seconds for active session durations
+  useEffect(() => {
+    const interval = setInterval(() => setNow(Date.now()), 60000);
+    return () => clearInterval(interval);
+  }, []);
 
   const loadSessions = async () => {
     setLoading(true);
@@ -122,10 +139,11 @@ export default function AttendancePage() {
         <thead>
           <tr style={{ textAlign: 'left' }}>
             <th style={{ padding: '12px 16px' }}>{t('attendance.id')}</th>
-            <th style={{ padding: '12px 16px' }}>{t('attendance.leader')}</th>
+            <th style={{ padding: '12px 16px' }}>{t('attendance.initiator')}</th>
             <th style={{ padding: '12px 16px' }}>{t('attendance.type')}</th>
             <th style={{ padding: '12px 16px' }}>{t('attendance.employees')}</th>
             <th style={{ padding: '12px 16px' }}>{t('attendance.status')}</th>
+            <th style={{ padding: '12px 16px' }}>{t('attendance.duration')}</th>
             <th style={{ padding: '12px 16px' }}>{t('attendance.created')}</th>
             <th style={{ padding: '12px 16px', textAlign: 'right' }}>{t('attendance.actions')}</th>
           </tr>
@@ -138,6 +156,9 @@ export default function AttendancePage() {
               <td style={{ padding: '12px 16px' }}>{typeBadge(s.type)}</td>
               <td style={{ padding: '12px 16px' }}>{s.employee_count}</td>
               <td style={{ padding: '12px 16px' }}>{statusBadge(s.status)}</td>
+              <td style={{ padding: '12px 16px', color: '#6b7280', fontSize: '0.85rem' }}>
+                {formatDuration(s.created_at, s.closed_at)}
+              </td>
               <td style={{ padding: '12px 16px', color: '#6b7280', fontSize: '0.85rem' }}>
                 {new Date(s.created_at).toLocaleString()}
               </td>

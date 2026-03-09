@@ -92,4 +92,18 @@ export function fetchLatestLocations() {
   return api.get('/api/locations/latest');
 }
 
+// --- Leaves API ---
+
+export function fetchLeaves(employeeId: number) {
+  return api.get('/api/leaves', { params: { employee_id: employeeId } });
+}
+
+export function createLeave(data: { employee_id: number; type: string; start_date: string; end_date: string }) {
+  return api.post('/api/leaves', data);
+}
+
+export function deleteLeave(id: number) {
+  return api.delete(`/api/leaves/${id}`);
+}
+
 export default api;
