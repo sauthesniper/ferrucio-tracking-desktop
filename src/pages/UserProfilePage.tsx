@@ -3,7 +3,7 @@ import { useParams, Link } from 'react-router-dom';
 import { MapContainer, TileLayer, Polyline, CircleMarker, Popup, useMap } from 'react-leaflet';
 import type { LatLngBoundsExpression } from 'leaflet';
 import 'leaflet/dist/leaflet.css';
-import api, { fetchEmployeeReport, fetchLeaves, createLeave, deleteLeave } from '../services/api';
+import api, { fetchEmployeeReport, fetchLeaves, createLeave, deleteLeave, sendSms, sendCheckinAlert, sendLoginCode, fetchSmsLog } from '../services/api';
 import { generateDateRange } from '../utils/dateRange';
 import { computeAttendanceTotals } from '../utils/attendanceTotals';
 import type { UserDetails, EmployeeReport, LocationPoint } from '../types/userProfile';
@@ -52,6 +52,15 @@ export default function UserProfilePage() {
   const [leaveSuccess, setLeaveSuccess] = useState('');
 
   const LEAVE_TYPES = ['CO', 'CM', 'CFP', 'CS', 'CC', 'CI'] as const;
+
+  // SMS state
+  interface SmsLogEntry { id: number; phone: string; message: string; type: string; status: string; username?: string; created_at: string; error?: string; }
+  const [smsLog, setSmsLog] = useState<SmsLogEntry[]>([]);
+  const [showSmsModal, setShowSmsModal] = useState(false);
+  const [smsMessage, setSmsMessage] = useState('');
+  const [smsSending, setSmsSending] = useState(false);
+  const [smsSuccess, setSmsSuccess] = useState('');
+  const [smsError, setSmsError] = useState('');
 
   // CO uses working days (Mon-Fri), CM uses calendar days, others use working days
   const countDays = (start: string, end: string, type: string): number => {
@@ -115,6 +124,52 @@ export default function UserProfilePage() {
     }
   };
 
+  const loadSmsLog = async () => {
+    if (!id) return;
+    try {
+      const res = await fetchSmsLog(Number(id));
+      setSmsLog(res.data.log || []);
+    } catch { /* ignore */ }
+  };
+
+  const handleSendCheckinAlert = async () => {
+    if (!id) return;
+    setSmsSending(true); setSmsError(''); setSmsSuccess('');
+    try {
+      await sendCheckinAlert(Number(id));
+      setSmsSuccess(t('sms.sent'));
+      loadSmsLog();
+    } catch (err: any) {
+      setSmsError(err?.response?.data?.error || t('sms.failed'));
+    } finally { setSmsSending(false); }
+  };
+
+  const handleSendLoginCode = async () => {
+    if (!id) return;
+    setSmsSending(true); setSmsError(''); setSmsSuccess('');
+    try {
+      await sendLoginCode(Number(id));
+      setSmsSuccess(t('sms.sent'));
+      loadSmsLog();
+    } catch (err: any) {
+      setSmsError(err?.response?.data?.error || t('sms.failed'));
+    } finally { setSmsSending(false); }
+  };
+
+  const handleSendCustomSms = async () => {
+    if (!id || !user?.phone || !smsMessage.trim()) return;
+    setSmsSending(true); setSmsError(''); setSmsSuccess('');
+    try {
+      await sendSms({ phone: user.phone, message: smsMessage.trim(), user_id: Number(id) });
+      setSmsSuccess(t('sms.sent'));
+      setShowSmsModal(false);
+      setSmsMessage('');
+      loadSmsLog();
+    } catch (err: any) {
+      setSmsError(err?.response?.data?.error || t('sms.failed'));
+    } finally { setSmsSending(false); }
+  };
+
   const handleTerminateContract = async () => {
     if (!id || !user) return;
     if (!confirm(t('userProfile.confirmTerminate'))) return;
@@ -152,6 +207,11 @@ export default function UserProfilePage() {
         try {
           const lvRes = await fetchLeaves(Number(id));
           setLeaves(lvRes.data.leaves || []);
+        } catch { /* ignore */ }
+        // Load SMS log
+        try {
+          const smsRes = await fetchSmsLog(Number(id));
+          setSmsLog(smsRes.data.log || []);
         } catch { /* ignore */ }
       } catch (err: any) {
         setError(err?.response?.data?.error || 'Failed to load user profile');
@@ -562,6 +622,115 @@ export default function UserProfilePage() {
                 }}
               >
                 {leaveSaving ? t('common.loading') : t('leave.save')}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* SMS Section */}
+      {user && isAdmin && (
+        <div style={{ marginBottom: 24 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12, flexWrap: 'wrap' }}>
+            <h2 style={{ fontSize: '1.1rem', margin: 0 }}>{t('sms.title')}</h2>
+            <button onClick={handleSendCheckinAlert} disabled={smsSending || !user.phone}
+              style={{ padding: '6px 14px', borderRadius: 6, border: '1px solid #f59e0b', background: '#fffbeb', color: '#92400e', cursor: !user.phone ? 'not-allowed' : 'pointer', fontSize: '0.85rem', fontWeight: 500, opacity: !user.phone ? 0.5 : 1 }}>
+              {t('sms.sendCheckinAlert')}
+            </button>
+            <button onClick={handleSendLoginCode} disabled={smsSending || !user.phone}
+              style={{ padding: '6px 14px', borderRadius: 6, border: '1px solid #2563eb', background: '#eff6ff', color: '#1e40af', cursor: !user.phone ? 'not-allowed' : 'pointer', fontSize: '0.85rem', fontWeight: 500, opacity: !user.phone ? 0.5 : 1 }}>
+              {t('sms.sendLoginCode')}
+            </button>
+            <button onClick={() => { setShowSmsModal(true); setSmsError(''); setSmsSuccess(''); setSmsMessage(''); }} disabled={!user.phone}
+              style={{ padding: '6px 14px', borderRadius: 6, border: '1px solid #16a34a', background: '#f0fdf4', color: '#166534', cursor: !user.phone ? 'not-allowed' : 'pointer', fontSize: '0.85rem', fontWeight: 500, opacity: !user.phone ? 0.5 : 1 }}>
+              {t('sms.sendCustom')}
+            </button>
+          </div>
+
+          {smsSuccess && (
+            <div style={{ color: '#166534', background: '#f0fdf4', border: '1px solid #bbf7d0', padding: '8px 14px', borderRadius: 8, marginBottom: 12, fontSize: '0.85rem' }}>
+              {smsSuccess}
+            </div>
+          )}
+          {smsError && !showSmsModal && (
+            <div style={{ color: '#dc2626', background: '#fef2f2', border: '1px solid #fecaca', padding: '8px 14px', borderRadius: 8, marginBottom: 12, fontSize: '0.85rem' }}>
+              {smsError}
+            </div>
+          )}
+
+          {smsLog.length > 0 ? (
+            <div style={{ maxHeight: 300, overflowY: 'auto' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                <thead>
+                  <tr style={{ textAlign: 'left', background: '#f8fafc', position: 'sticky', top: 0 }}>
+                    <th style={{ padding: '10px 16px', fontSize: '0.85rem' }}>{t('sms.date')}</th>
+                    <th style={{ padding: '10px 16px', fontSize: '0.85rem' }}>{t('sms.type')}</th>
+                    <th style={{ padding: '10px 16px', fontSize: '0.85rem' }}>{t('sms.message')}</th>
+                    <th style={{ padding: '10px 16px', fontSize: '0.85rem' }}>{t('sms.status')}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {smsLog.map(entry => (
+                    <tr key={entry.id} style={{ borderBottom: '1px solid #f3f4f6' }}>
+                      <td style={{ padding: '10px 16px', fontSize: '0.85rem', whiteSpace: 'nowrap' }}>{new Date(entry.created_at).toLocaleString()}</td>
+                      <td style={{ padding: '10px 16px' }}>
+                        <span style={{
+                          padding: '2px 8px', borderRadius: 8, fontSize: '0.75rem', fontWeight: 500,
+                          background: entry.type === 'alert' ? '#fef3c7' : entry.type === 'login_code' ? '#dbeafe' : '#f3e8ff',
+                          color: entry.type === 'alert' ? '#92400e' : entry.type === 'login_code' ? '#1e40af' : '#6b21a8',
+                        }}>
+                          {entry.type === 'alert' ? t('sms.typeAlert') : entry.type === 'login_code' ? t('sms.typeLoginCode') : t('sms.typeCustom')}
+                        </span>
+                      </td>
+                      <td style={{ padding: '10px 16px', fontSize: '0.85rem', maxWidth: 300, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{entry.message}</td>
+                      <td style={{ padding: '10px 16px' }}>
+                        <span style={{
+                          padding: '2px 8px', borderRadius: 8, fontSize: '0.75rem', fontWeight: 500,
+                          background: entry.status === 'sent' ? '#dcfce7' : entry.status === 'debug' ? '#e0e7ff' : '#fef2f2',
+                          color: entry.status === 'sent' ? '#166534' : entry.status === 'debug' ? '#3730a3' : '#dc2626',
+                        }}>
+                          {entry.status === 'sent' ? t('sms.statusSent') : entry.status === 'debug' ? t('sms.statusDebug') : t('sms.statusFailed')}
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ) : (
+            <p style={{ color: '#9ca3af', fontSize: '0.85rem' }}>{t('sms.noLog')}</p>
+          )}
+        </div>
+      )}
+
+      {/* Custom SMS Modal */}
+      {showSmsModal && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
+          <div style={{ background: '#fff', borderRadius: 12, padding: 24, width: 440 }}>
+            <h2 style={{ margin: '0 0 16px 0', fontSize: '1.1rem' }}>{t('sms.sendCustom')}</h2>
+            {smsError && (
+              <div style={{ color: '#dc2626', background: '#fef2f2', border: '1px solid #fecaca', padding: '8px 14px', borderRadius: 8, marginBottom: 12, fontSize: '0.85rem' }}>
+                {smsError}
+              </div>
+            )}
+            <div style={{ marginBottom: 14 }}>
+              <label style={{ display: 'block', marginBottom: 4, fontSize: '0.85rem', color: '#374151', fontWeight: 500 }}>{t('sms.phone')}</label>
+              <input type="text" value={user?.phone || ''} disabled
+                style={{ width: '100%', padding: '8px 12px', borderRadius: 6, border: '1px solid #d1d5db', fontSize: '0.9rem', boxSizing: 'border-box', background: '#f9fafb', color: '#6b7280' }} />
+            </div>
+            <div style={{ marginBottom: 14 }}>
+              <label style={{ display: 'block', marginBottom: 4, fontSize: '0.85rem', color: '#374151', fontWeight: 500 }}>{t('sms.message')}</label>
+              <textarea value={smsMessage} onChange={e => setSmsMessage(e.target.value)} placeholder={t('sms.messagePlaceholder')}
+                rows={3} style={{ width: '100%', padding: '8px 12px', borderRadius: 6, border: '1px solid #d1d5db', fontSize: '0.9rem', boxSizing: 'border-box', resize: 'vertical' }} />
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
+              <button onClick={() => setShowSmsModal(false)}
+                style={{ padding: '8px 16px', borderRadius: 6, border: '1px solid #d1d5db', background: '#fff', color: '#111827', cursor: 'pointer', fontSize: '0.85rem' }}>
+                {t('sms.cancel')}
+              </button>
+              <button onClick={handleSendCustomSms} disabled={smsSending || !smsMessage.trim()}
+                style={{ padding: '8px 16px', borderRadius: 6, border: 'none', background: '#2563eb', color: '#fff', cursor: 'pointer', fontSize: '0.85rem', fontWeight: 500, opacity: !smsMessage.trim() ? 0.5 : 1 }}>
+                {smsSending ? t('common.loading') : t('sms.send')}
               </button>
             </div>
           </div>

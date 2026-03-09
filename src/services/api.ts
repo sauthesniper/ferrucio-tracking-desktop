@@ -106,4 +106,23 @@ export function deleteLeave(id: number) {
   return api.delete(`/api/leaves/${id}`);
 }
 
+// --- SMS API ---
+
+export function sendSms(data: { phone: string; message: string; user_id?: number }) {
+  return api.post('/api/sms/send', data);
+}
+
+export function sendCheckinAlert(userId: number) {
+  return api.post(`/api/sms/send-checkin-alert/${userId}`);
+}
+
+export function sendLoginCode(userId: number) {
+  return api.post(`/api/sms/send-login-code/${userId}`);
+}
+
+export function fetchSmsLog(userId?: number) {
+  if (userId) return api.get(`/api/sms/log/${userId}`);
+  return api.get('/api/sms/log');
+}
+
 export default api;
