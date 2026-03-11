@@ -1,9 +1,9 @@
 import { useState, useEffect, useRef } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { MapContainer, TileLayer, Polyline, CircleMarker, Popup, useMap } from 'react-leaflet';
+import { MapContainer, TileLayer, Polyline, CircleMarker, Popup, Marker, useMap } from 'react-leaflet';
 import type { LatLngBoundsExpression } from 'leaflet';
 import 'leaflet/dist/leaflet.css';
-import api, { fetchEmployeeReport, fetchLeaves, createLeave, deleteLeave, sendSms, sendCheckinAlert, sendLoginCode, fetchSmsLog } from '../services/api';
+import api, { fetchEmployeeReport, fetchLeaves, createLeave, deleteLeave, sendSms, sendCheckinAlert, sendLoginCode, fetchSmsLog, fetchAlerts, adminCheckOut, updateCheckInDeadline } from '../services/api';
 import { generateDateRange } from '../utils/dateRange';
 import { computeAttendanceTotals } from '../utils/attendanceTotals';
 import type { UserDetails, EmployeeReport, LocationPoint } from '../types/userProfile';
@@ -62,6 +62,19 @@ export default function UserProfilePage() {
   const [smsSuccess, setSmsSuccess] = useState('');
   const [smsError, setSmsError] = useState('');
 
+  // Admin check-in/out state
+  const [adminCheckInLoading, setAdminCheckInLoading] = useState(false);
+  const [adminCheckOutLoading, setAdminCheckOutLoading] = useState(false);
+  const [attendanceStatus, setAttendanceStatus] = useState<{ isCheckedIn: boolean; sessionId?: number } | null>(null);
+
+  // Alerts state
+  interface AlertEntry { id: number; type: string; details: Record<string, unknown> | null; created_at: string; seen: number; attendance_session_id?: number; employee_name?: string; }
+  const [alerts, setAlerts] = useState<AlertEntry[]>([]);
+  const [alertMapCoords, setAlertMapCoords] = useState<{ lat: number; lng: number } | null>(null);
+
+  // Check-in deadline state
+  const [deadlineValue, setDeadlineValue] = useState('10:00');
+  const [deadlineSaving, setDeadlineSaving] = useState(false);
   // CO uses working days (Mon-Fri), CM uses calendar days, others use working days
   const countDays = (start: string, end: string, type: string): number => {
     if (!start || !end) return 0;
@@ -187,6 +200,60 @@ export default function UserProfilePage() {
     }
   };
 
+  const loadAlerts = async () => {
+    if (!id) return;
+    try {
+      const res = await fetchAlerts(undefined, Number(id));
+      setAlerts(res.data.alerts || []);
+    } catch { /* ignore */ }
+  };
+
+  const loadAttendanceStatus = async () => {
+    if (!id) return;
+    try {
+      const res = await api.get('/api/attendance/employees-dashboard');
+      const emp = (res.data.employees || []).find((e: any) => e.id === Number(id));
+      if (emp) setAttendanceStatus({ isCheckedIn: emp.isCheckedIn, sessionId: emp.id });
+      else setAttendanceStatus({ isCheckedIn: false });
+    } catch { /* ignore */ }
+  };
+
+  const handleAdminCheckIn = async () => {
+    if (!id) return;
+    setAdminCheckInLoading(true); setError(''); setSuccess('');
+    try {
+      await api.post('/api/attendance/admin-check-in', { employee_id: Number(id) });
+      setSuccess(t('userProfile.adminCheckInSuccess'));
+      loadAttendanceStatus();
+    } catch (err: any) {
+      setError(err?.response?.data?.error || t('userProfile.adminCheckInFailed'));
+    } finally { setAdminCheckInLoading(false); }
+  };
+
+  const handleAdminCheckOut = async () => {
+    if (!id) return;
+    setAdminCheckOutLoading(true); setError(''); setSuccess('');
+    try {
+      await adminCheckOut(Number(id));
+      setSuccess(t('userProfile.adminCheckOutSuccess'));
+      loadAttendanceStatus();
+    } catch (err: any) {
+      setError(err?.response?.data?.error || t('userProfile.adminCheckOutFailed'));
+    } finally { setAdminCheckOutLoading(false); }
+  };
+
+  const handleSaveDeadline = async () => {
+    if (!id) return;
+    setDeadlineSaving(true); setError(''); setSuccess('');
+    try {
+      await updateCheckInDeadline(Number(id), deadlineValue);
+      setSuccess(t('userProfile.deadlineSaved'));
+      if (user) setUser({ ...user, check_in_deadline: deadlineValue } as any);
+    } catch (err: any) {
+      setError(err?.response?.data?.error || 'Eroare la salvare');
+    } finally { setDeadlineSaving(false); }
+  };
+
   // Fetch user details and attendance report on mount
   useEffect(() => {
     if (!id) return;
@@ -213,6 +280,20 @@ export default function UserProfilePage() {
           const smsRes = await fetchSmsLog(Number(id));
           setSmsLog(smsRes.data.log || []);
         } catch { /* ignore */ }
+        // Load alerts
+        try {
+          const alertRes = await fetchAlerts(undefined, Number(id));
+          setAlerts(alertRes.data.alerts || []);
+        } catch { /* ignore */ }
+        // Load attendance status
+        try {
+          const statusRes = await api.get('/api/attendance/employees-dashboard');
+          const emp = (statusRes.data.employees || []).find((e: any) => e.id === Number(id));
+          if (emp) setAttendanceStatus({ isCheckedIn: emp.isCheckedIn });
+          else setAttendanceStatus({ isCheckedIn: false });
+        } catch { /* ignore */ }
+        // Set deadline from user data
+        if (userRes.data.check_in_deadline) setDeadlineValue(userRes.data.check_in_deadline);
       } catch (err: any) {
         setError(err?.response?.data?.error || 'Failed to load user profile');
       } finally {
@@ -406,6 +487,40 @@ export default function UserProfilePage() {
               )}
             </div>
           )}
+        </div>
+      )}
+
+      {/* Admin Pontaj + Deadline Section */}
+      {user && isAdmin && !user.contract_ended_at && (
+        <div style={{ border: '1px solid #e5e7eb', borderRadius: 12, padding: 20, marginBottom: 24, background: '#fff' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+            <h2 style={{ fontSize: '1.1rem', margin: 0 }}>{t('userProfile.adminPontaj')}</h2>
+            {attendanceStatus?.isCheckedIn ? (
+              <button onClick={handleAdminCheckOut} disabled={adminCheckOutLoading}
+                style={{ padding: '8px 16px', borderRadius: 8, border: '1px solid #dc2626', background: '#fef2f2', color: '#dc2626', cursor: 'pointer', fontSize: '0.85rem', fontWeight: 500 }}>
+                {adminCheckOutLoading ? t('common.loading') : t('userProfile.adminCheckOut')}
+              </button>
+            ) : (
+              <button onClick={handleAdminCheckIn} disabled={adminCheckInLoading}
+                style={{ padding: '8px 16px', borderRadius: 8, border: '1px solid #16a34a', background: '#f0fdf4', color: '#166534', cursor: 'pointer', fontSize: '0.85rem', fontWeight: 500 }}>
+                {adminCheckInLoading ? t('common.loading') : t('userProfile.adminCheckIn')}
+              </button>
+            )}
+            <span style={{ padding: '4px 12px', borderRadius: 12, fontSize: '0.8rem', fontWeight: 500,
+              background: attendanceStatus?.isCheckedIn ? '#dcfce7' : '#fee2e2',
+              color: attendanceStatus?.isCheckedIn ? '#166534' : '#991b1b' }}>
+              {attendanceStatus?.isCheckedIn ? t('userProfile.statusCheckedIn') : t('userProfile.statusNotCheckedIn')}
+            </span>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 16 }}>
+            <span style={{ fontSize: '0.85rem', color: '#6b7280' }}>{t('userProfile.checkInDeadline')}</span>
+            <input type="time" value={deadlineValue} onChange={e => setDeadlineValue(e.target.value)}
+              style={{ padding: '6px 10px', borderRadius: 6, border: '1px solid #d1d5db', fontSize: '0.9rem' }} />
+            <button onClick={handleSaveDeadline} disabled={deadlineSaving}
+              style={{ padding: '6px 14px', borderRadius: 6, border: '1px solid #2563eb', background: '#2563eb', color: '#fff', cursor: 'pointer', fontSize: '0.85rem', fontWeight: 500 }}>
+              {deadlineSaving ? t('common.loading') : t('common.save')}
+            </button>
+          </div>
         </div>
       )}
 
@@ -734,6 +849,85 @@ export default function UserProfilePage() {
               </button>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* Alerts Section */}
+      {user && (
+        <div style={{ marginBottom: 24 }}>
+          <h2 style={{ fontSize: '1.1rem', marginBottom: 12 }}>{t('userProfile.alertsTitle')}</h2>
+          {alerts.length > 0 ? (
+            <>
+              <div style={{ border: '1px solid #e5e7eb', borderRadius: 12, overflow: 'hidden', maxHeight: 350, overflowY: 'auto' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                  <thead style={{ position: 'sticky', top: 0, background: '#f9fafb' }}>
+                    <tr>
+                      <th style={{ padding: '10px 16px', fontSize: '0.85rem', fontWeight: 600, textAlign: 'left' }}>{t('userProfile.alertType')}</th>
+                      <th style={{ padding: '10px 16px', fontSize: '0.85rem', fontWeight: 600, textAlign: 'left' }}>{t('userProfile.alertDate')}</th>
+                      <th style={{ padding: '10px 16px', fontSize: '0.85rem', fontWeight: 600, textAlign: 'left' }}>{t('userProfile.alertDetails')}</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {alerts.map(a => {
+                      const isGeofence = a.type === 'geofence_exit' && a.details;
+                      const hasCoords = isGeofence && a.details && typeof a.details === 'object' && 'latitude' in a.details && 'longitude' in a.details;
+                      return (
+                        <tr key={a.id} style={{ borderTop: '1px solid #f3f4f6', opacity: a.seen ? 0.5 : 1, cursor: hasCoords ? 'pointer' : 'default' }}
+                          onClick={() => {
+                            if (hasCoords && a.details) {
+                              setAlertMapCoords({ lat: Number((a.details as any).latitude), lng: Number((a.details as any).longitude) });
+                            }
+                          }}
+                          onMouseEnter={e => { if (hasCoords) (e.currentTarget as HTMLElement).style.background = '#f0f9ff'; }}
+                          onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = ''; }}
+                        >
+                          <td style={{ padding: '8px 16px', fontSize: '0.85rem' }}>
+                            <span style={{ padding: '2px 8px', borderRadius: 8, fontSize: '0.75rem', fontWeight: 500,
+                              background: a.type === 'geofence_exit' ? '#fef3c7' : a.type === 'late_checkin' ? '#fee2e2' : '#dbeafe',
+                              color: a.type === 'geofence_exit' ? '#92400e' : a.type === 'late_checkin' ? '#991b1b' : '#1e40af' }}>
+                              {a.type}
+                            </span>
+                          </td>
+                          <td style={{ padding: '8px 16px', fontSize: '0.85rem', color: '#6b7280' }}>
+                            {(() => { try { return new Date(a.created_at).toLocaleString('ro-RO'); } catch { return a.created_at; } })()}
+                          </td>
+                          <td style={{ padding: '8px 16px', fontSize: '0.85rem', color: '#6b7280' }}>
+                            {hasCoords && <span style={{ color: '#2563eb', fontSize: '0.8rem' }}>📍 {t('userProfile.showOnMap')}</span>}
+                            {a.type === 'late_checkin' && a.details && (a.details as any).deadline && (
+                              <span>{t('userProfile.deadlineLabel')}: {(a.details as any).deadline}</span>
+                            )}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Geofence alert map */}
+              {alertMapCoords && (
+                <div style={{ marginTop: 16 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+                    <h3 style={{ fontSize: '1rem', margin: 0 }}>{t('userProfile.alertLocation')}</h3>
+                    <button onClick={() => setAlertMapCoords(null)}
+                      style={{ padding: '4px 10px', borderRadius: 6, border: '1px solid #d1d5db', background: '#fff', color: '#6b7280', cursor: 'pointer', fontSize: '0.8rem' }}>
+                      ✕ {t('common.close')}
+                    </button>
+                  </div>
+                  <div style={{ borderRadius: 12, overflow: 'hidden', boxShadow: '0 4px 12px rgba(0,0,0,0.1)', height: 300 }}>
+                    <MapContainer center={[alertMapCoords.lat, alertMapCoords.lng]} zoom={16} style={{ height: '100%', width: '100%' }}>
+                      <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" attribution="&copy; OpenStreetMap contributors" />
+                      <Marker position={[alertMapCoords.lat, alertMapCoords.lng]}>
+                        <Popup>{t('userProfile.geofenceExitHere')}</Popup>
+                      </Marker>
+                    </MapContainer>
+                  </div>
+                </div>
+              )}
+            </>
+          ) : (
+            <p style={{ color: '#9ca3af', fontSize: '0.85rem' }}>{t('userProfile.noAlerts')}</p>
+          )}
         </div>
       )}
 

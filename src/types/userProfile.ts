@@ -13,6 +13,7 @@ export interface UserDetails {
   screen_time_limit: number | null;
   stationary_limit: number | null;
   contract_ended_at: string | null;
+  check_in_deadline: string | null;
   createdAt: string;
 }
 

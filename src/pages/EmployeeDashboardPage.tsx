@@ -1,9 +1,10 @@
 import { useState, useEffect, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
-import api from '../services/api';
+import api, { generateLateAlerts } from '../services/api';
 import { useTranslation } from '../i18n';
 import { useAuth } from '../context/AuthContext';
 import KpiCard from '../components/KpiCard';
@@ -27,7 +28,9 @@ interface MapEmployee {
 interface RecentAlert {
   id: number;
   type: string;
+  employee_id: number;
   employee_name: string;
+  details: Record<string, unknown> | null;
   created_at: string;
   seen: number;
 }
@@ -66,6 +69,7 @@ interface Employee {
   isCheckedIn: boolean;
   checkInAt: string | null;
   lastActivity: string | null;
+  contractEndedAt: string | null;
 }
 
 type SortKey = 'username' | 'isCheckedIn' | 'lastActivity';
@@ -74,6 +78,7 @@ type SortDir = 'asc' | 'desc';
 export default function EmployeeDashboardPage() {
   const { t } = useTranslation();
   const { user } = useAuth();
+  const navigate = useNavigate();
   const isAdmin = user?.role === 'admin';
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [error, setError] = useState('');
@@ -91,6 +96,7 @@ export default function EmployeeDashboardPage() {
   const [sortDir, setSortDir] = useState<SortDir>('asc');
   const [showCheckInModal, setShowCheckInModal] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [dashboardSearch, setDashboardSearch] = useState('');
   const [checkInLoading, setCheckInLoading] = useState<number | null>(null);
   const [checkInSuccess, setCheckInSuccess] = useState('');
 
@@ -133,6 +139,7 @@ export default function EmployeeDashboardPage() {
   };
 
   const refreshAll = async () => {
+    if (isAdmin) { try { await generateLateAlerts(); } catch { /* ignore */ } }
     await Promise.all([fetchDashboard(), fetchKpi(), fetchMapSummary(), fetchRecentAlerts(), fetchCharts()]);
   };
 
@@ -151,16 +158,23 @@ export default function EmployeeDashboardPage() {
   };
 
   const sortedEmployees = useMemo(() => {
-    const sorted = [...employees];
-    sorted.sort((a, b) => {
+    const q = dashboardSearch.toLowerCase().trim();
+    const isContractSearch = q.includes('contract') || q.includes('încheiat') || q.includes('incheiat');
+    let filtered = employees.filter(e => {
+      // Hide contract-ended employees unless specifically searching for them
+      if (e.contractEndedAt && !isContractSearch) return false;
+      if (!q) return true;
+      return e.username.toLowerCase().includes(q) || (e.phone || '').toLowerCase().includes(q) || e.uniqueCode.toLowerCase().includes(q) || e.role.toLowerCase().includes(q);
+    });
+    filtered.sort((a, b) => {
       let cmp = 0;
       if (sortKey === 'username') cmp = a.username.localeCompare(b.username);
       else if (sortKey === 'isCheckedIn') cmp = (a.isCheckedIn === b.isCheckedIn) ? 0 : a.isCheckedIn ? -1 : 1;
       else if (sortKey === 'lastActivity') cmp = (a.lastActivity || '').localeCompare(b.lastActivity || '');
       return sortDir === 'asc' ? cmp : -cmp;
     });
-    return sorted;
-  }, [employees, sortKey, sortDir]);
+    return filtered;
+  }, [employees, sortKey, sortDir, dashboardSearch]);
 
   const sortIndicator = (key: SortKey) => sortKey !== key ? ' ↕' : sortDir === 'asc' ? ' ↑' : ' ↓';
 
@@ -290,7 +304,11 @@ export default function EmployeeDashboardPage() {
               </thead>
               <tbody>
                 {sortedAlerts.map((alert) => (
-                  <tr key={alert.id} style={{ borderTop: '1px solid #f3f4f6', opacity: alert.seen ? 0.5 : 1 }}>
+                  <tr key={alert.id} style={{ borderTop: '1px solid #f3f4f6', opacity: alert.seen ? 0.5 : 1, cursor: 'pointer' }}
+                    onClick={() => alert.employee_id && navigate(`/users/${alert.employee_id}`)}
+                    onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = '#f9fafb'; }}
+                    onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = ''; }}
+                  >
                     <td style={{ padding: '8px 16px', fontSize: '0.85rem', whiteSpace: 'nowrap' }}>
                       <span style={{ padding: '2px 8px', borderRadius: 8, fontSize: '0.75rem', fontWeight: 500, background: '#fef3c7', color: '#92400e' }}>{alert.type}</span>
                     </td>
@@ -335,6 +353,15 @@ export default function EmployeeDashboardPage() {
       </div>
 
       {/* Employee Table */}
+      <div style={{ marginBottom: 12 }}>
+        <input
+          type="text"
+          placeholder={t('dashboard.searchPlaceholder')}
+          value={dashboardSearch}
+          onChange={e => setDashboardSearch(e.target.value)}
+          style={{ width: '100%', padding: '10px 14px', borderRadius: 8, border: '1px solid #d1d5db', fontSize: '0.9rem', boxSizing: 'border-box' }}
+        />
+      </div>
       <table style={{ width: '100%', borderCollapse: 'collapse' }}>
         <thead>
           <tr style={{ textAlign: 'left' }}>
@@ -349,8 +376,14 @@ export default function EmployeeDashboardPage() {
         </thead>
         <tbody>
           {sortedEmployees.map((emp) => (
-            <tr key={emp.id} style={{ borderBottom: '1px solid #f3f4f6', background: emp.isCheckedIn ? '#f0fdf4' : '#fef2f2' }}>
-              <td style={{ padding: '12px 16px', fontWeight: 500 }}>{emp.username}</td>
+            <tr key={emp.id} onClick={() => navigate(`/users/${emp.id}`)} style={{ borderBottom: '1px solid #f3f4f6', background: emp.contractEndedAt ? '#f9fafb' : emp.isCheckedIn ? '#f0fdf4' : '#fef2f2', opacity: emp.contractEndedAt ? 0.6 : 1, cursor: 'pointer' }}
+              onMouseEnter={e => { (e.currentTarget as HTMLElement).style.filter = 'brightness(0.96)'; }}
+              onMouseLeave={e => { (e.currentTarget as HTMLElement).style.filter = ''; }}
+            >
+              <td style={{ padding: '12px 16px', fontWeight: 500 }}>
+                {emp.username}
+                {emp.contractEndedAt && <span style={{ marginLeft: 8, padding: '1px 8px', borderRadius: 8, fontSize: '0.7rem', background: '#fef2f2', color: '#dc2626', border: '1px solid #fecaca' }}>{t('users.contractEnded')}</span>}
+              </td>
               <td style={{ padding: '12px 16px', fontFamily: 'monospace', fontSize: '0.85rem' }}>{emp.uniqueCode}</td>
               <td style={{ padding: '12px 16px', color: '#6b7280', fontSize: '0.85rem' }}>{emp.phone || '—'}</td>
               <td style={{ padding: '12px 16px' }}>

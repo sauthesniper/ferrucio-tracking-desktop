@@ -125,4 +125,16 @@ export function fetchSmsLog(userId?: number) {
   return api.get('/api/sms/log');
 }
 
+export function adminCheckOut(employeeId: number) {
+  return api.post('/api/attendance/admin-check-out', { employee_id: employeeId });
+}
+
+export function updateCheckInDeadline(userId: number, deadline: string) {
+  return api.patch(`/api/users/${userId}/check-in-deadline`, { deadline });
+}
+
+export function generateLateAlerts() {
+  return api.post('/api/dashboard/generate-late-alerts');
+}
+
 export default api;
