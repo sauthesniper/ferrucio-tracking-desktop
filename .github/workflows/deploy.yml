@@ -1,0 +1,36 @@
+name: Deploy Desktop
+
+on:
+  push:
+    branches: [master]
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install & Build
+        run: |
+          npm ci
+          npm run build
+        env:
+          VITE_API_URL: https://gps-tracking-api.code-envision.ro
+
+      - name: Deploy build to server
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          password: ${{ secrets.SSH_PASSWORD }}
+          port: 22
+          source: "dist/*"
+          target: "/var/www/gps-tracking-desktop"
+          strip_components: 1
+          overwrite: true
