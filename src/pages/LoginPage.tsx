@@ -30,15 +30,16 @@ export default function LoginPage() {
   return (
     <div style={{
       display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh',
-      background: 'linear-gradient(135deg, #0a0e27 0%, #0f172a 25%, #1e3a5f 50%, #0f172a 75%, #0a0e27 100%)',
+      background: 'linear-gradient(135deg, #1a0000 0%, #000000 25%, #330000 50%, #000000 75%, #1a0000 100%)',
     }}>
       <form onSubmit={handleSubmit} style={{
         width: 380, padding: 20, borderRadius: 16,
         background: 'rgba(255,255,255,0.05)', backdropFilter: 'blur(20px)',
         border: '1px solid rgba(255,255,255,0.1)', boxShadow: '0 25px 50px rgba(0,0,0,0.4)',
       }}>
-        <div style={{ textAlign: 'center', marginBottom: 4 }}>
-          <h1 style={{ color: 'white', fontSize: '1.5rem', marginTop: 12, marginBottom: 4 }}>{t('login.appName')}</h1>
+        <div style={{ textAlign: 'center', marginBottom: 16 }}>
+          <img src="/cropped-fg-logo-1-1.png" alt="Feruccio Logo" style={{ width: 80, height: 80, borderRadius: 16, marginBottom: 8 }} />
+          <h1 style={{ color: 'white', fontSize: '1.5rem', marginTop: 0, marginBottom: 4 }}>Feruccio</h1>
         </div>
 
         {error && <div style={{ color: '#f87171', background: 'rgba(248,113,113,0.1)', padding: '10px 14px', borderRadius: 8, marginBottom: 16, fontSize: '0.85rem' }}>{error}</div>}
@@ -60,9 +61,9 @@ export default function LoginPage() {
         </div>
 
         <button type="submit" disabled={loading} style={{
-          width: '100%', padding: 12, background: 'linear-gradient(135deg, #3b82f6, #1d4ed8)', border: 'none',
+          width: '100%', padding: 12, background: 'linear-gradient(135deg, #CC0000, #8B0000)', border: 'none',
           borderRadius: 8, color: 'white', fontWeight: 600, fontSize: '0.95rem', cursor: loading ? 'not-allowed' : 'pointer',
-          boxShadow: '0 4px 14px rgba(59,130,246,0.4)', transition: 'all 0.2s',
+          boxShadow: '0 4px 14px rgba(204,0,0,0.4)', transition: 'all 0.2s',
         }}>
           {loading ? t('login.signingIn') : t('login.submit')}
         </button>

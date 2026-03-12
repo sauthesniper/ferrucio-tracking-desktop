@@ -21,10 +21,8 @@ function NavBar() {
 
   return (
     <nav style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 24px', background: '#0f172a', color: 'white' }}>
-      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: 8 }}>
-        <circle cx="12" cy="12" r="10" /><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20" /><path d="M2 12h20" />
-      </svg>
-      <span style={{ fontWeight: 600, fontSize: '1rem', marginRight: 24, color: '#111827' }}>ADMIN</span>
+      <img src="/cropped-fg-logo-1-1.png" alt="Feruccio Logo" style={{ width: 28, height: 28, marginRight: 6, borderRadius: 4 }} />
+      <span style={{ fontWeight: 700, fontSize: '1.1rem', marginRight: 24, color: 'white', letterSpacing: '0.5px' }}>Feruccio</span>
 
       <Link to="/dashboard" style={{
         display: 'flex', alignItems: 'center', gap: 6, padding: '6px 14px', borderRadius: 6,

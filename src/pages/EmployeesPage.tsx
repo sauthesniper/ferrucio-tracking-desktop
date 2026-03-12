@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo, type FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { QRCodeSVG } from 'qrcode.react';
 import api, { fetchLeaves } from '../services/api';
 import UserFormExtended from '../components/UserFormExtended';
 import { useTranslation } from '../i18n';
@@ -23,6 +24,10 @@ export default function EmployeesPage() {
   const [editingUser, setEditingUser] = useState<User | null>(null);
   const [newPassword, setNewPassword] = useState('');
   const [passwordLoading, setPasswordLoading] = useState(false);
+
+  // QR modal state
+  const [qrUser, setQrUser] = useState<User | null>(null);
+  const [qrError, setQrError] = useState('');
 
   // Search, sort, filter state
   const [searchQuery, setSearchQuery] = useState('');
@@ -123,6 +128,17 @@ export default function EmployeesPage() {
       { sortColumn, sortDirection },
     );
   }, [users, searchQuery, roleFilter, statusFilter, sortColumn, sortDirection, leaveEmployeeIds]);
+
+  const handleGenerateQR = (e: React.MouseEvent, user: User) => {
+    e.stopPropagation();
+    if (!user.login_code) {
+      setQrError('Utilizatorul nu are cod de logare');
+      setQrUser(null);
+      return;
+    }
+    setQrError('');
+    setQrUser(user);
+  };
 
   const chipStyle = (active: boolean, color: string, bg: string, border: string) => ({
     padding: '6px 14px',
@@ -267,6 +283,29 @@ export default function EmployeesPage() {
         </div>
       )}
 
+      {/* QR Code modal */}
+      {qrUser && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000 }} onClick={() => setQrUser(null)}>
+          <div onClick={(e) => e.stopPropagation()} style={{ width: 380, padding: 28, background: 'white', borderRadius: 12, boxShadow: '0 20px 60px rgba(0,0,0,0.3)', textAlign: 'center' }}>
+            <h2 style={{ fontSize: '1.1rem', marginBottom: 4 }}>QR Login</h2>
+            <p style={{ color: '#6b7280', fontSize: '0.85rem', marginBottom: 20 }}>{qrUser.username}</p>
+            <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 20 }}>
+              <QRCodeSVG value={qrUser.login_code!} size={200} />
+            </div>
+            <p style={{ color: '#9ca3af', fontSize: '0.8rem', marginBottom: 16 }}>Cod: {qrUser.login_code}</p>
+            <button type="button" onClick={() => setQrUser(null)} style={{ background: '#fff', color: '#111827', border: '1px solid #d1d5db', padding: '8px 20px', borderRadius: 8, cursor: 'pointer' }}>Închide</button>
+          </div>
+        </div>
+      )}
+
+      {/* QR error toast */}
+      {qrError && (
+        <div style={{ position: 'fixed', bottom: 24, left: '50%', transform: 'translateX(-50%)', background: '#dc2626', color: '#fff', padding: '10px 20px', borderRadius: 8, fontSize: '0.9rem', zIndex: 1001, boxShadow: '0 4px 12px rgba(0,0,0,0.2)' }}>
+          {qrError}
+          <button onClick={() => setQrError('')} style={{ marginLeft: 12, background: 'transparent', border: 'none', color: '#fff', cursor: 'pointer', fontSize: '1rem' }}>✕</button>
+        </div>
+      )}
+
       <table style={{ width: '100%', borderCollapse: 'collapse' }}>
         <thead>
           <tr style={{ textAlign: 'left' }}>
@@ -320,6 +359,9 @@ export default function EmployeesPage() {
               <td style={{ padding: '12px 16px', color: '#6b7280', fontSize: '0.85rem' }}>{new Date(u.createdAt).toLocaleDateString()}</td>
               <td style={{ padding: '12px 16px', textAlign: 'right' }}>
                 <div style={{ display: 'flex', gap: 6, justifyContent: 'flex-end' }}>
+                  <button onClick={(e) => handleGenerateQR(e, u)} title="Generează QR" style={{ background: '#faf5ff', color: '#7c3aed', border: '1px solid #ddd6fe', padding: '4px 8px' }}>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="7" height="7" /><rect x="14" y="3" width="7" height="7" /><rect x="3" y="14" width="7" height="7" /><rect x="14" y="14" width="7" height="7" /></svg>
+                  </button>
                   <button onClick={(e) => { e.stopPropagation(); setEditingUser(u); setNewPassword(''); }} title="Change password" style={{ background: '#f0f9ff', color: '#0369a1', border: '1px solid #bae6fd', padding: '4px 8px' }}>
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" /></svg>
                   </button>

@@ -12,6 +12,7 @@ export interface Employee {
   createdAt: string;
   contract_ended_at: string | null;
   is_checked_in: boolean;
+  login_code?: string | null;
 }
 
 export type SortColumn = 'username' | 'role' | 'phone' | 'unique_code' | 'createdAt';
