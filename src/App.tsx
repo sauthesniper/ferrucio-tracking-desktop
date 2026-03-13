@@ -1,4 +1,8 @@
-﻿import { BrowserRouter, Routes, Route, Navigate, Link, useLocation, Outlet } from 'react-router-dom';
+﻿﻿import L from 'leaflet';
+import markerIcon2x from 'leaflet/dist/images/marker-icon-2x.png';
+import markerIcon from 'leaflet/dist/images/marker-icon.png';
+import markerShadow from 'leaflet/dist/images/marker-shadow.png';
+import { BrowserRouter, Routes, Route, Navigate, Link, useLocation, Outlet } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { useTranslation } from './i18n';
 import LoginPage from './pages/LoginPage';
@@ -11,6 +15,14 @@ import UserProfilePage from './pages/UserProfilePage';
 import ReportsPage from './pages/ReportsPage';
 import AttendanceCalendarPage from './pages/AttendanceCalendarPage';
 import EmployeeDashboardPage from './pages/EmployeeDashboardPage';
+
+// Fix Leaflet default marker icons not loading in production builds
+delete (L.Icon.Default.prototype as any)._getIconUrl;
+L.Icon.Default.mergeOptions({
+  iconRetinaUrl: markerIcon2x,
+  iconUrl: markerIcon,
+  shadowUrl: markerShadow,
+});
 
 function NavBar() {
   const { user, logout } = useAuth();
