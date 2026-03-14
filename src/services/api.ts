@@ -15,7 +15,8 @@ api.interceptors.request.use((config) => {
 // --- Sessions API ---
 
 export function fetchSessions(status?: string) {
-  const params = status ? { status } : {};
+  const params: Record<string, string> = { all: 'true' };
+  if (status) params.status = status;
   return api.get('/api/sessions', { params });
 }
 
